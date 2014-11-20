@@ -1,0 +1,40 @@
+# RELEASE
+# Defines location of external products
+include $(TOP)/RELEASE_SITE
+
+# ===============================================================
+# Define the location and version of EPICS base
+# ===============================================================
+BASE_MODULE_VERSION=R3.14.12-0.4.0
+EPICS_BASE=$(EPICS_SITE_TOP)/base/$(BASE_MODULE_VERSION)
+
+# ===============================================================
+# Define the version of modules needed by
+# IOC apps or other Support apps
+# =============================================================
+ADCORE_MODULE_VERSION			= R2.0-0.6.0
+ASYN_MODULE_VERSION				= R4.23-0.3.0
+EVENT2_MODULE_VERSION			= R4.0.0-2.6.0
+#GENSUB_MODULE_VERSION			= R1.6.1.3-4.0.0
+
+# ============================================================
+# External Support module path definitions
+#
+# If any of these macros expand to a path which
+# contains an "include" directory, that directory will be
+# included in the compiler include path.
+#
+# If any of these macros expand to a path which
+# contains a "lib/<arch>" directory, that directory will be
+# included in the compiler link path for that architecture.
+#
+# If your build fails, look for these paths in your build output
+# ============================================================
+ADCORE			= $(EPICS_MODULES)/ADCore/$(ADCORE_MODULE_VERSION)
+ASYN			= $(EPICS_MODULES)/asyn/$(ASYN_MODULE_VERSION)
+EVENT2			= $(EPICS_MODULES)/event2/$(EVENT2_MODULE_VERSION)
+#GENSUB			= $(EPICS_MODULES)/genSub/$(GENSUB_MODULE_VERSION)
+
+MY_MODULES=/reg/neh/home/bhill/wa2/trunk/pcds/epics/modules
+#ASYN=$(MY_MODULES)/asyn/current
+#EVENT2=$(MY_MODULES)/event2/current

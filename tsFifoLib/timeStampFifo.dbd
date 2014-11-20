@@ -1,0 +1,3 @@
+function(TSFifo_Init)
+function(TSFifo_Process)
+variable( DEBUG_TSFifo )
