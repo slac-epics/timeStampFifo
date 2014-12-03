@@ -1,0 +1,83 @@
+#
+# timeStampFifo.template
+#
+# Required macros:
+#	DEV		- Common prefix for all timeStampFifo records
+#	PORT_PV	- PV for asyn port name of synchronized data device
+#	EC_PV	- PV for fetching the data timestamp event code
+#
+# Optional macros:
+#	GEN_PV	- PV which updates on each timing change which requires a resync
+#				Defaults to $(DEV):Gen
+#	DLY_PV	- PV which can be read to fetch the expected delay in fiducial count
+#				between the event code and the timestamp request
+#				Defaults to $(DEV):FidDelay
+#	DLY		- Delay value for $(DEV):FidDelay
+#				Not used if you provide your own DLY_PV
+#
+
+#
+# TimeStampFifo Process 
+# This aSub PV handles updating the timeStampFifo driver w/ new values
+#
+# Inputs
+#	A: Port PV name
+#	B: Event Code PV name
+#	C: Generation count PV name
+#	D: PV name for expected delay in fiducials from event code to acquisition
+#
+# Outputs
+#	A:	TimeStamp Synced Status: 0 = unlocked, 1 = locked
+#
+record( aSub, "$(DEV):ProcessSub" )
+{
+  field( DESC, "Update TSS data" )
+  field( SCAN, "Passive" )
+  field( INAM, "TSFifo_Init" )
+  field( SNAM, "TSFifo_Process" )
+  field( FTA,  "STRING" ) field( INPA, "$(PORT_PV) CPP MS" )
+  field( FTB,  "LONG"   ) field( INPB, "$(EC_PV) CPP MS" )
+  field( FTC,  "LONG"   ) field( INPC, "$(GEN_PV=$(DEV):Gen) CPP MS" )
+  field( FTD,  "LONG"   ) field( INPD, "$(DLY_PV=$(DEV):FidDelay) CPP MS" )
+
+  field( OUTA, "$(DEV):SyncStatus PP MS" )
+  field( FTVA, "LONG"   )
+  info(  autosaveFields, "DESC" )
+}
+
+
+record( bo, "$(DEV):SyncStatus" )
+{
+  field( DESC, "TSS sync status" )
+  field( ZNAM, "Unlocked" )
+  field( ONAM, "Locked" )
+  field( ZSV,  "MAJOR" )
+  field( OSV,  "NO_ALARM" )
+  info(  autosaveFields, "DESC ZNAM ONAM ZSV OSV" )
+}
+
+
+# Default timestamp change generation PV
+# Can be used if your synchronous data device doesn't
+# require resync on timing changes.
+record( longout, "$(DEV):Gen" )
+{
+  field( DESC, "TSS generation" )
+  field( DOL,  "0" )
+  field( PINI, "YES" )
+  info(  autosaveFields, "DESC" )
+}
+
+
+# Default timestamp fiducial delay PV
+# Can be used if your synchronous data device is
+# expected to acquire it's data during the same
+# fiducial as the event code.
+record( longout, "$(DEV):FidDelay" )
+{
+  field( DESC, "TSS fid delay" )
+  field( DOL,  "$(DLY=0)" )
+  field( PINI, "YES" )
+  info(  autosaveFields, "DESC VAL" )
+}
+

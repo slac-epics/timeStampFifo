@@ -71,7 +71,8 @@ public:		//  Public input member variables
 	/// m_eventCode: Event code for timestamps
     epicsUInt32				m_eventCode;
     epicsUInt32				m_genCount;
-	epicsInt32				m_delay;
+    epicsUInt32				m_genPrior;
+	double					m_delay;
 
 	bool					m_synced;
 

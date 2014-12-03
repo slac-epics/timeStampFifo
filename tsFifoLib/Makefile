@@ -9,7 +9,7 @@ LIB_SRCS += timeStampFifo.cpp
 
 DBD += timeStampFifo.dbd
 
-DB  += timeStampFifo.db
+DB  += timeStampFifo.template
 
 #=============================
 

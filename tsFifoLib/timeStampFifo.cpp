@@ -2,6 +2,7 @@
 #include <iomanip>
 #include <string>
 #include <string.h>
+#include <stdlib.h>
 #include <sstream>
 
 #include <iocsh.h>
@@ -12,6 +13,7 @@
 #include <aSubRecord.h>
 #include <dbAddr.h>
 #include <dbAccess.h>
+#include <dbScan.h>
 #include <recGbl.h>
 
 #include "asynDriver.h"
@@ -29,7 +31,7 @@ int					DEBUG_TSFifo	= 1;
 using namespace		std;
 
 /// Static TSFifo map by port name
-static  map<string, TSFifo *>   ms_TSFifoMap;
+map<string, TSFifo *>   TSFifo::ms_TSFifoMap;
 
 
 // TimeStampFifo is the function that gets registered
@@ -64,12 +66,17 @@ TSFifo::TSFifo(
 	aSubRecord	*	pSubRecord	)
 	:	m_eventCode(	0				),
 		m_genCount(		0				),
-		m_delay(		0				),
+		m_genPrior(		0				),
+		m_delay(		0.0				),
 		m_synced(		false			),
 		m_pSubRecord(	pSubRecord		),
 		m_portName(		pPortName		),
 		m_idx(			0LL				),
-		m_idxIncr(		MAX_TS_QUEUE	)
+		m_idxIncr(		MAX_TS_QUEUE	),
+		m_fidPrior(		PULSEID_INVALID	),
+		m_fidDiffPrior(	0				),
+		m_syncCount(	0				),
+		m_syncCountMin(	1				)
 {
 	AddTSFifo( this );
 }
@@ -120,10 +127,13 @@ asynStatus TSFifo::RegisterTimeStampSource( )
 
 
 int TSFifo::GetTimeStamp(
-	epicsTimeStamp			*	pTimeStampRet )
+	epicsTimeStamp	*	pTimeStampRet )
 {
-	epicsTimeStamp				fifoTimeStamp;
-	epicsUInt32					fidFifo	= PULSEID_INVALID;
+	const char		*	functionName	= "TSFifo::GetTimeStamp";
+	epicsUInt32			fidFifo			= PULSEID_INVALID;
+	epicsTimeStamp		fifoTimeStamp;
+	enum SyncType		{ CURRENT, FIDDIFF, FIFODLY };
+	enum SyncType		tySync;
 
 //	TODO: Add locking as needed
 //	epicsMutexLock( lock );
@@ -137,55 +147,105 @@ int TSFifo::GetTimeStamp(
 	// First time or unsynced, m_idxIncr is MAX_TS_QUEUE, which
 	// just gets the latest eventCode in the FIFO
 	int	status	= evrTimeGetFifo( &fifoTimeStamp, m_eventCode, &m_idx, m_idxIncr );
-//	int status	= evrTimeGetFifo( &fifoTimeStamp, m_eventCode, &m_idx, m_idxIncr );
+	int	fidLast	= evrGetLastFiducial();
+	int	fidTgt	= fidLast - m_delay;
 	if ( status == 0 )
 		m_idxIncr	= 1;
 
 	fidFifo	= PULSEID( fifoTimeStamp );
-	epicsTimeStamp		curTimeStamp;
-	epicsTimeStamp		sysTimeStamp;
-	if ( m_fidPrior == PULSEID_INVALID || m_fidDiffPrior == PULSEID_INVALID )
+	int		fidDiff	= 0;
+	if ( m_fidPrior != PULSEID_INVALID )
+		fidDiff	= FID_DIFF( fidFifo, m_fidPrior );
+	int		tgtError = FID_DIFF( fidTgt, fidFifo );
+	if ( abs(tgtError) <= 1 )
 	{
-		// No prior fiducial to compare with
-		// See if the current system time matches the latest timeStamp for this eventCode
-		evrTimeGet( &curTimeStamp, m_eventCode ); 
-		epicsTimeGetCurrent( &sysTimeStamp ); 
-		int	timeDiff	= PULSEID(sysTimeStamp) - PULSEID(curTimeStamp);
-		if ( timeDiff > 1 )
-		{
-			//	Mark unsynced;
-			m_idx					= 0LL;
-			m_idxIncr				= MAX_TS_QUEUE;
-			fifoTimeStamp.nsec	|= PULSEID_INVALID;
-		}
+		m_synced	= true;
+		m_syncCount++;
+		tySync	= FIFODLY;
 	}
 	else
-	{	// See if we're synchronous w/ prior fiducials for this event code
-		int fidDiff	= FID_DIFF( fidFifo, m_fidPrior );
-		if ( fidDiff == m_fidDiffPrior )
-			m_syncCount++;
-		else
-			m_syncCount	= 0;
-		m_fidPrior		= fidFifo;
-		m_fidDiffPrior	= fidDiff;
-		if ( m_syncCount <= m_syncCountMin )
+	{
+		epicsTimeStamp		curTimeStamp;
+		evrTimeGet( &curTimeStamp, m_eventCode ); 
+		int	fidCur	= PULSEID( fifoTimeStamp );
+		if ( FID_DIFF( fidLast, fidCur ) == m_delay )
 		{
-			//	Mark unsynced;
-			m_idx					= 0LL;
-			m_idxIncr				= MAX_TS_QUEUE;
-			fifoTimeStamp.nsec	|= PULSEID_INVALID;
+			tySync		= CURRENT;
+			m_idxIncr	= MAX_TS_QUEUE;	// Reset FIFO
+			m_synced	= true;
+			m_syncCount++;
+		}
+		else if ( FID_DIFF( fidLast, fidFifo ) >= 13 )
+		{
+			m_synced	= false;
+			m_syncCount = 0;
+			tySync	= FIFODLY;
+		}
+		else
+		{	// See if we have a consistent fidDiff w/ prior samples
+			tySync	= FIDDIFF;
+			if ( m_fidPrior == PULSEID_INVALID || m_fidDiffPrior == PULSEID_INVALID )
+			{
+				// No prior fiducial to compare with
+				m_synced	= false;
+				m_syncCount	= 0;
+			}
+			else
+			{
+				// See if we're synchronous w/ prior fiducials for this event code
+				if ( fidDiff == m_fidDiffPrior )
+					m_syncCount++;
+				else
+					m_syncCount	= 0;
+				if ( m_syncCount <= m_syncCountMin )
+					m_synced	= false;
+				else
+					m_synced	= true;
+			}
 		}
 	}
+	m_fidPrior		= fidFifo;
+	m_fidDiffPrior	= fidDiff;
+	if( m_genPrior != m_genCount )
+		m_synced	= false;
+	m_genPrior		= m_genCount;
 
+	if ( !m_synced )
+	{
+		//	Mark unsynced;
+		m_idx				= 0LL;
+		m_idxIncr			= MAX_TS_QUEUE;
+		fifoTimeStamp.nsec	|= PULSEID_INVALID;
+	}
+
+	if ( pTimeStampRet != NULL )
+		*pTimeStampRet = fifoTimeStamp;
+
+	if (	( DEBUG_TSFifo & 4 )
+		|| (( DEBUG_TSFifo & 2 ) && (!m_synced || tySync == FIDDIFF)) )
+	{
+		char		acBuff[40];
+		epicsTimeToStrftime( acBuff, 40, "%H:%M:%S.%04f", &fifoTimeStamp );
+		printf( "%s: %s, %s, ts %s, fid 0x%X, fidFifo 0x%X, fidLast 0x%X, fidDiff %d, fidDiffPrior %d\n",
+				functionName,
+				( m_synced ? "Synced  " : "Unsynced" ),
+				( tySync == CURRENT ? "CURRENT" : ( tySync == FIDDIFF ? "FIDDIFF" : "FIFODLY" ) ),
+				acBuff, PULSEID(fifoTimeStamp ), fidFifo, fidLast,
+				fidDiff, m_fidDiffPrior	);
+	}
 //	epicsMutexUnlock (m_lock);
 
 //	scanIoRequest(m_ioScanPvt);
 	if ( m_pSubRecord != NULL )
 	{
 		dbCommon	*	pDbCommon	= reinterpret_cast<dbCommon *>( m_pSubRecord );
+#if 0
 		dbScanLock(		pDbCommon	);
 		dbProcess(		pDbCommon	);
 		dbScanUnlock(	pDbCommon	);
+#else
+		scanOnce( pDbCommon );
+#endif
 	}
 
 	return status;
@@ -196,8 +256,8 @@ epicsUInt32	TSFifo::Show( int level ) const
 {
 	printf( "TSFifo for port %s\n",	m_portName.c_str() );
 	printf( "\tEventCode:\t%d\n",	m_eventCode );
-	printf( "\tGeneration:\t%d\n",	m_eventCode );
-	printf( "\tFidDelay:\t%d\n",	m_delay );
+	printf( "\tGeneration:\t%d\n",	m_genCount );
+	printf( "\tFidDelay:\t%.3e\n",	m_delay );
 	printf( "\tSync Status:\t%s\n",	m_synced ? "Synced" : "Unsynced" );
 	return 0;
 }
@@ -233,35 +293,62 @@ extern "C" long TSFifo_Process( aSubRecord	*	pSub	)
 {
 	TSFifo		*   pTSFifo	= NULL;
 	int				status	= 0;
-	if ( DEBUG_TSFifo & 4 )
+	if ( DEBUG_TSFifo & 8 )
 	{
 		cout	<<	"TSFifo_Process: " << pSub->name	<<	endl;
 	}
 
 	if ( pSub->dpvt	 != NULL )
 	{
-		pTSFifo		= static_cast<TSFifo *>( pSub->dpvt );
+		// pTSFifo		= static_cast<TSFifo *>( pSub->dpvt );
+		pTSFifo		= (TSFifo *) ( pSub->dpvt );
 	}
 	else
 	{
-		epicsString	*	pPortName	= static_cast<epicsString *>( pSub->a );
-		TSFifo		*   pTSFifo		= TSFifo::FindByPortName( pPortName->pString );
+		char	*	pPortName	= static_cast<char *>( pSub->a );
+		if ( pPortName == NULL )
+		{
+			printf( "Error %s: NULL TSFifo port name\n", pSub->name );
+			return -1;
+		}
+		if ( strlen(pPortName) == 0 )
+		{
+			printf( "Error %s: Empty TSFifo port name\n", pSub->name );
+			return -1;
+		}
+		if ( strcmp(pPortName,"Unknown") == 0 )
+		{
+			if ( DEBUG_TSFifo & 2 )
+				printf( "%s: Port name not available yet. Still %s\n", pSub->name, pPortName );
+			return -1;
+		}
+
+		if ( DEBUG_TSFifo )
+			printf( "%s: Attempting to register port name %s\n", pSub->name, pPortName );
+
+		pTSFifo		= TSFifo::FindByPortName( pPortName );
 		if ( pTSFifo == NULL )
 		{
-			pTSFifo = new TSFifo( pPortName->pString, pSub );
+			if ( DEBUG_TSFifo )
+				printf( "%s: Creating new TSFifo for port name %s\n", pSub->name, pPortName );
+			pTSFifo = new TSFifo( pPortName, pSub );
 		}
 		if ( pTSFifo->m_pSubRecord != pSub )
 		{
 			printf( "Error %s: Unable to register as TSFifo port %s already registered to %s\n",
-					pSub->name, pPortName->pString, pTSFifo->m_pSubRecord->name );
+					pSub->name, pPortName, pTSFifo->m_pSubRecord->name );
+			delete pTSFifo;
 			return -1;
 		}
 		if ( pTSFifo->RegisterTimeStampSource() != asynSuccess )
 		{
 			printf( "Error %s: Unable to register timeStampSource for port %s\n",
-					pSub->name, pPortName->pString );
+					pSub->name, pPortName );
+			delete pTSFifo;
 			return -1;
 		}
+		printf( "%s: Successfully registered timeStampSource for port %s\n",
+				pSub->name, pPortName );
 		pSub->dpvt = pTSFifo;
 	}
 	assert( pTSFifo != NULL );
@@ -273,7 +360,8 @@ extern "C" long TSFifo_Process( aSubRecord	*	pSub	)
 	pIntVal	= static_cast<epicsInt32 *>( pSub->c );
 	if ( pIntVal != NULL )
 		pTSFifo->m_genCount		= *pIntVal;
-	pIntVal	= static_cast<epicsInt32 *>( pSub->c );
+	pIntVal	= static_cast<epicsInt32 *>( pSub->d );
+	// TODO: Change m_delay from integer fiducial delta to double delay in sec
 	if ( pIntVal != NULL )
 		pTSFifo->m_delay		= *pIntVal;
 
@@ -304,6 +392,12 @@ static const	iocshArg	*	ShowTSFifo_Args[2]	= { &ShowTSFifo_Arg0, &ShowTSFifo_Arg
 static const	iocshFuncDef	ShowTSFifo_FuncDef	= { "ShowTSFifo", 2, ShowTSFifo_Args };
 static void		ShowTSFifo_CallFunc( const iocshArgBuf * args )
 {
+	if ( args[0].sval == 0 )
+	{
+		printf( "Usage: ShowTSFifo portName level\n" );
+		return;
+	}
+
 	TSFifo		*   pTSFifo		= TSFifo::FindByPortName( args[0].sval );
 	if ( pTSFifo != NULL )
 		pTSFifo->Show( args[1].ival );
