@@ -25,6 +25,7 @@
 #	B: Event Code PV name
 #	C: Generation count PV name
 #	D: PV name for expected delay in fiducials from event code to acquisition
+#	E: PV name for timestamp policy: 0 = EVENT, 1 = SYNCED, 2 = BEST
 #
 # Outputs
 #	A:	TimeStamp Synced Status: 0 = unlocked, 1 = locked
@@ -39,6 +40,7 @@ record( aSub, "$(DEV):ProcessSub" )
   field( FTB,  "LONG"   ) field( INPB, "$(EC_PV) CPP MS" )
   field( FTC,  "LONG"   ) field( INPC, "$(GEN_PV=$(DEV):Gen) CPP MS" )
   field( FTD,  "LONG"   ) field( INPD, "$(DLY_PV=$(DEV):FidDelay) CPP MS" )
+  field( FTE,  "LONG"   ) field( INPE, "$(DEV):TsPolicy CPP MS" )
 
   field( OUTA, "$(DEV):SyncStatus PP MS" )
   field( FTVA, "LONG"   )
@@ -81,3 +83,13 @@ record( longout, "$(DEV):FidDelay" )
   info(  autosaveFields, "DESC VAL" )
 }
 
+record( mbbo, "$(DEV):TsPolicy" )
+{
+  field( DESC, "TS policy" )
+  field( DOL,  "$(POLICY=0)" )
+  field( ZRVL, "0" ) field( ZRST, "EVENT" )
+  field( ONVL, "1" ) field( ONST, "SYNCED" )
+  field( TWVL, "2" ) field( TWST, "BEST" )
+  field( PINI, "YES" )
+  info(  autosaveFields, "DESC VAL" )
+}

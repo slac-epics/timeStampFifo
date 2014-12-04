@@ -28,9 +28,22 @@ struct	aSubRecord;
 class  TSFifo
 {
 public:
+	/// Default timestamp policy is to provide the best timestamp available
+	/// for the specified event code, TS_EVENT.  A pulse id is encoded into
+	/// the least significant 17 bits of the nsec timestamp field, as per
+	/// SLAC convention for EVR timestamps.   The pulse id is set to 0x1FFFF
+	/// if the timeStampFifo status is unsynced.
+	///   TS_EVENT	- Most recent timestamp for the specified event code, no matter how old
+	///   TS_SYNCED - If unsynced, no timestamp is provided and GetTimeStamp returns -1.
+	///   TS_BEST   - Provides a synced, pulse id'd timestamp for the specified event code
+	///				  if available.  If not, it provides the current time w/ the most recent
+	///				  fiducial pulse id.
+	enum TSPolicy	{ TS_EVENT = 0, TS_SYNCED = 1, TS_BEST = 2 };
+
     /// Constructor
     TSFifo(	const char			*	pPortName,
-			struct	aSubRecord	*	m_pSubRecord	);
+			struct	aSubRecord	*	m_pSubRecord,
+			TSPolicy				tsPolicy = TS_EVENT );
 
     /// Destructor
     virtual ~TSFifo( )
@@ -43,6 +56,18 @@ public:
 	/// On error, returns -1 and sets pTimeStampRet to the current system
 	/// clock timestamp w/ the fiducial pulsid set to invalid
 	int	GetTimeStamp(	epicsTimeStamp		*	pTimeStampRet );
+
+	/// Return the current TimeStamp policy
+	TSPolicy	GetTimeStampPolicy( ) const
+	{
+		return m_tsPolicy;
+	}
+
+	/// Set the TimeStamp policy
+	void	SetTimeStampPolicy( TSPolicy	tsPolicy )
+	{
+		m_tsPolicy = tsPolicy;
+	}
 
 	/// Show()
 	/// Display pertinent TSFifo info on stdout
@@ -86,6 +111,7 @@ private:	//  Private member variables
 	int						m_fidDiffPrior;
 	int						m_syncCount;
 	int						m_syncCountMin;
+	TSPolicy				m_tsPolicy;
 
 private:    //  Private class variables
 
