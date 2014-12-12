@@ -14,7 +14,7 @@ EPICS_BASE=$(EPICS_SITE_TOP)/base/$(BASE_MODULE_VERSION)
 # =============================================================
 ADCORE_MODULE_VERSION			= R2.0-0.7.0
 ASYN_MODULE_VERSION				= R4.23-0.3.0
-EVENT2_MODULE_VERSION			= R4.0.0-2.7.0
+EVENT2_MODULE_VERSION			= R4.0.0-2.9.0
 #GENSUB_MODULE_VERSION			= R1.6.1.3-4.0.0
 
 # ============================================================

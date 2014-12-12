@@ -17,8 +17,8 @@
 #
 
 #
-# TimeStampFifo Process 
-# This aSub PV handles updating the timeStampFifo driver w/ new values
+# TimeStampFifo UpdateParams 
+# This aSub PV handles updating the timeStampFifo driver w/ new parameters
 #
 # Inputs
 #	A: Port PV name
@@ -30,7 +30,7 @@
 # Outputs
 #	A:	TimeStamp Synced Status: 0 = unlocked, 1 = locked
 #
-record( aSub, "$(DEV):ProcessSub" )
+record( aSub, "$(DEV):UpdateParams" )
 {
   field( DESC, "Update TSS data" )
   field( SCAN, "Passive" )
@@ -45,6 +45,13 @@ record( aSub, "$(DEV):ProcessSub" )
   field( OUTA, "$(DEV):SyncStatus PP MS" )
   field( FTVA, "LONG"   )
   info(  autosaveFields, "DESC" )
+}
+
+record( longin, "$(DEV):EventCode_RBV" )
+{
+  field( DESC, "Event code readback" )
+  field( INP,  "$(EC_PV_RBV=$(EC_PV)) CPP MS" )
+  info(  autosaveFields, "DESC INP" )
 }
 
 

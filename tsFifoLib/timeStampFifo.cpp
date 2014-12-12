@@ -142,7 +142,6 @@ int TSFifo::GetTimeStamp(
 	epicsTimeStamp	*	pTimeStampRet )
 {
 	const char		*	functionName	= "TSFifo::GetTimeStamp";
-	epicsUInt32			fidFifo			= PULSEID_INVALID;
 	epicsTimeStamp		fifoTimeStamp;
 	enum SyncType		{ CURRENT, FIDDIFF, FIFODLY, TOO_LATE, FAILED };
 	enum SyncType		tySync	= FAILED;
@@ -156,24 +155,37 @@ int TSFifo::GetTimeStamp(
 	if ( m_tsPolicy == TS_EVENT )
 		return evrTimeGet( pTimeStampRet, m_eventCode); 
 
+	epicsUInt32		fidFifo	= PULSEID_INVALID;
+	int				fidDiff	= PULSEID_INVALID;
+
 	// First time or unsynced, m_idxIncr is MAX_TS_QUEUE, which
 	// just gets the most recent FIFO timestamp for that eventCode
 	int	evrTimeStatus	= evrTimeGetFifo( &fifoTimeStamp, m_eventCode, &m_idx, m_idxIncr );
+	if ( evrTimeStatus != 0 )
+	{
+		m_idxIncr	= MAX_TS_QUEUE;	// Reset FIFO
+		m_synced	= false;
+		return -1;
+	}
+
+	fidFifo		= PULSEID( fifoTimeStamp );
+	m_idxIncr	= 1;
+
+	// Get the last 360hz Fiducial
 	int	fidLast	= evrGetLastFiducial();
-	int	fidTgt	= fidLast - m_delay;
-	if ( evrTimeStatus == 0 )
-		m_idxIncr	= 1;
+	int	fidTgt	= fidLast;
+	if( fidTgt < static_cast<int>( m_delay ) )
+		fidTgt	+= FID_MAX;
+	fidTgt -= m_delay;
 
 	// Get the fiducial for this FIFO timestamp and compute
 	// the target error and delta vs the prior fiducial
-	fidFifo	= PULSEID( fifoTimeStamp );
-	int		fidDiff	= PULSEID_INVALID;
-	if ( m_fidPrior != PULSEID_INVALID )
+	if ( m_fidPrior != PULSEID_INVALID && fidFifo != PULSEID_INVALID )
 		fidDiff	= FID_DIFF( fidFifo, m_fidPrior );
-	int		tgtError = FID_DIFF( fidTgt, fidFifo );
+	int				tgtError = FID_DIFF( fidTgt, fidFifo );
 
 	// Did we hit our target ficucial?
-	if ( abs(tgtError) <= 1 )
+	if ( abs(tgtError) <= 2 )
 	{
 		// We're synced!
 		m_synced	= true;
@@ -194,15 +206,6 @@ int TSFifo::GetTimeStamp(
 			m_synced	= true;
 			m_syncCount++;
 		}
-#if 0	// Don't think we need this block
-		else if ( FID_DIFF( fidLast, fidFifo ) >= 13 )
-		{
-			// Too old (13 is arbitrary, allows for 4 behind at 120hz)
-			m_synced	= false;
-			m_syncCount = 0;
-			tySync		= TOO_LATE;
-		}
-#endif
 		else
 		{	// See if we have a consistent fidDiff w/ prior samples
 			if (	m_fidPrior != PULSEID_INVALID
@@ -216,6 +219,7 @@ int TSFifo::GetTimeStamp(
 			}
 			else
 			{
+				tySync		= FAILED;
 				m_synced	= false;
 				m_syncCount	= 0;
 			}
@@ -243,9 +247,9 @@ int TSFifo::GetTimeStamp(
 	{
 		char		acBuff[40];
 		epicsTimeToStrftime( acBuff, 40, "%H:%M:%S.%04f", &fifoTimeStamp );
-		printf( "%s: %s, %s, ts %s, fid 0x%X, fidFifo 0x%X, fidLast 0x%X, fidDiff %d, fidDiffPrior %d\n",
+		printf( "%s: %-8s, %-8s, ts %s, fid 0x%X, fidFifo 0x%X, fidLast 0x%X, fidDiff %d, fidDiffPrior %d\n",
 				functionName,
-				( m_synced ? "Synced  " : "Unsynced" ),
+				( m_synced ? "Synced" : "Unsynced" ),
 				(	tySync == CURRENT
 				?	"CURRENT"
 				:	(	tySync == FIDDIFF
