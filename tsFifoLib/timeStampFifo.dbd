@@ -1,4 +1,4 @@
 function( TSFifo_Init )
 function( TSFifo_Process )
 registrar( ShowTSFifo_Register )
-variable( DEBUG_TSFifo )
+variable( DEBUG_TS_FIFO )

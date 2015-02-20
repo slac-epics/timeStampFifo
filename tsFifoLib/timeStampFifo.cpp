@@ -22,7 +22,7 @@
 
 using namespace		std;
 
-int					DEBUG_TSFifo	= 1;
+int					DEBUG_TS_FIFO	= 1;
 
 #ifndef NULL
 #define NULL    0
@@ -52,7 +52,7 @@ static void TimeStampFifo(
 	{
 		epicsTimeGetCurrent( pTimeStamp );
 		pTimeStamp->nsec |= PULSEID_INVALID;
-		if ( DEBUG_TSFifo & 8 )
+		if ( DEBUG_TS_FIFO & 8 )
 			printf( "Error %s: GetTimeStamp error %d for port %s\n",
 					functionName, status, pTSFifo->GetPortName() );
 	}
@@ -242,8 +242,8 @@ int TSFifo::GetTimeStamp(
 		fifoTimeStamp.nsec	|= PULSEID_INVALID;
 	}
 
-	if (	( DEBUG_TSFifo & 4 )
-		|| (( DEBUG_TSFifo & 2 ) && (tySync == FIDDIFF)) )
+	if (	( DEBUG_TS_FIFO & 4 )
+		|| (( DEBUG_TS_FIFO & 2 ) && (tySync == FIDDIFF)) )
 	{
 		char		acBuff[40];
 		epicsTimeToStrftime( acBuff, 40, "%H:%M:%S.%04f", &fifoTimeStamp );
@@ -332,7 +332,7 @@ extern "C" long TSFifo_Process( aSubRecord	*	pSub	)
 {
 	TSFifo		*   pTSFifo	= NULL;
 	int				status	= 0;
-	if ( DEBUG_TSFifo & 8 )
+	if ( DEBUG_TS_FIFO & 8 )
 	{
 		cout	<<	"TSFifo_Process: " << pSub->name	<<	endl;
 	}
@@ -357,18 +357,18 @@ extern "C" long TSFifo_Process( aSubRecord	*	pSub	)
 		}
 		if ( strcmp(pPortName,"Unknown") == 0 )
 		{
-			if ( DEBUG_TSFifo & 2 )
+			if ( DEBUG_TS_FIFO & 2 )
 				printf( "%s: Port name not available yet. Still %s\n", pSub->name, pPortName );
 			return -1;
 		}
 
-		if ( DEBUG_TSFifo )
+		if ( DEBUG_TS_FIFO )
 			printf( "%s: Attempting to register port name %s\n", pSub->name, pPortName );
 
 		pTSFifo		= TSFifo::FindByPortName( pPortName );
 		if ( pTSFifo == NULL )
 		{
-			if ( DEBUG_TSFifo )
+			if ( DEBUG_TS_FIFO )
 				printf( "%s: Creating new TSFifo for port name %s\n", pSub->name, pPortName );
 			pTSFifo = new TSFifo( pPortName, pSub );
 		}
@@ -433,7 +433,7 @@ extern "C"
 epicsRegisterFunction(	TSFifo_Init		);
 epicsRegisterFunction(	TSFifo_Process	);
 epicsRegisterFunction(	TimeStampFifo	);
-epicsExportAddress( int, DEBUG_TSFifo	);
+epicsExportAddress( int, DEBUG_TS_FIFO	);
 }
 
 // Register shell callable functions with iocsh
