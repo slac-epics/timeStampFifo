@@ -46,8 +46,14 @@ static void TimeStampFifo(
 
 	int			status	= -1;
 	TSFifo	*	pTSFifo	= reinterpret_cast<TSFifo *>( userPvt );
-	if ( pTSFifo != NULL )
-		status = pTSFifo->GetTimeStamp( pTimeStamp );
+	if ( pTSFifo == NULL )
+	{
+		printf( "Error %s: userPvt param is NULL!\n", functionName );
+		return;
+	}
+
+	// Get the timestamp
+	status = pTSFifo->GetTimeStamp( pTimeStamp );
 	if ( status != asynSuccess )
 	{
 		epicsTimeGetCurrent( pTimeStamp );
@@ -142,6 +148,7 @@ int TSFifo::GetTimeStamp(
 	epicsTimeStamp	*	pTimeStampRet )
 {
 	const char		*	functionName	= "TSFifo::GetTimeStamp";
+	int					evrTimeStatus	= 0;
 	epicsTimeStamp		fifoTimeStamp;
 	enum SyncType		{ CURRENT, FIDDIFF, FIFODLY, TOO_LATE, FAILED };
 	enum SyncType		tySync	= FAILED;
@@ -152,24 +159,35 @@ int TSFifo::GetTimeStamp(
 //	TODO: Add locking as needed
 //	epicsMutexLock( lock );
 
+	m_synced	= false;
 	if ( m_tsPolicy == TS_EVENT )
-		return evrTimeGet( pTimeStampRet, m_eventCode); 
+	{
+		evrTimeStatus	= evrTimeGet( pTimeStampRet, m_eventCode); 
+		if ( evrTimeStatus == 0 )
+			m_synced = true;
+		return evrTimeStatus;
+	}
 
 	epicsUInt32		fidFifo	= PULSEID_INVALID;
 	int				fidDiff	= PULSEID_INVALID;
 
 	// First time or unsynced, m_idxIncr is MAX_TS_QUEUE, which
 	// just gets the most recent FIFO timestamp for that eventCode
-	int	evrTimeStatus	= evrTimeGetFifo( &fifoTimeStamp, m_eventCode, &m_idx, m_idxIncr );
-	if ( evrTimeStatus != 0 )
+	evrTimeStatus	= evrTimeGetFifo( &fifoTimeStamp, m_eventCode, &m_idx, m_idxIncr );
+	if ( evrTimeStatus == 0 )
+	{
+		m_idxIncr	= 1;
+	}
+	else
 	{
 		m_idxIncr	= MAX_TS_QUEUE;	// Reset FIFO
-		m_synced	= false;
+		if ( DEBUG_TS_FIFO & 2 )
+			printf( "%s unsynced error: evrTimeGetFifo returned status %d\n",
+					functionName, evrTimeStatus );
 		return -1;
 	}
 
 	fidFifo		= PULSEID( fifoTimeStamp );
-	m_idxIncr	= 1;
 
 	// Get the last 360hz Fiducial
 	int	fidLast	= evrGetLastFiducial();
