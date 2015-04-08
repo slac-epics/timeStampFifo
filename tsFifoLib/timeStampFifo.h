@@ -42,13 +42,11 @@ public:
 
     /// Constructor
     TSFifo(	const char			*	pPortName,
-			struct	aSubRecord	*	m_pSubRecord,
+			struct	aSubRecord	*	pSubRecord,
 			TSPolicy				tsPolicy = TS_EVENT );
 
     /// Destructor
-    virtual ~TSFifo( )
-    {
-    }
+    virtual ~TSFifo( );
 
 	/// GetTimeStamp
 	/// Synchronize w/ the timestamp FIFO and return the timestamp
@@ -60,13 +58,13 @@ public:
 	/// Return the current TimeStamp policy
 	TSPolicy	GetTimeStampPolicy( ) const
 	{
-		return m_tsPolicy;
+		return m_TSPolicy;
 	}
 
 	/// Set the TimeStamp policy
 	void	SetTimeStampPolicy( TSPolicy	tsPolicy )
 	{
-		m_tsPolicy = tsPolicy;
+		m_TSPolicy = tsPolicy;
 	}
 
 	/// Show()
@@ -90,16 +88,17 @@ private:	//  Private class functions
 
 public:		//  Public input member variables
 	//
-    //  Inputs written from aSub "C" function
+    //  aSub "C" function inputs
 	//
+    epicsUInt32				m_eventCode;	/// m_eventCode: Event code for timestamps
+    epicsUInt32				m_genCount;		/// m_genCount: Increments each time EVR settings are tweaked
+    epicsUInt32				m_genPrior;		/// m_genPrior: prior m_genCount
+	double					m_delay;		/// m_delay:	Expected delay since event code (sec)
 
-	/// m_eventCode: Event code for timestamps
-    epicsUInt32				m_eventCode;
-    epicsUInt32				m_genCount;
-    epicsUInt32				m_genPrior;
-	double					m_delay;
-
-	bool					m_synced;
+	//
+	//	aSub "C" function outputs
+	//
+	bool					m_synced;		/// m_synced: True if synced
 
 	struct	aSubRecord	*	m_pSubRecord;
 
@@ -111,11 +110,12 @@ private:	//  Private member variables
 	int						m_fidDiffPrior;
 	int						m_syncCount;
 	int						m_syncCountMin;
-	TSPolicy				m_tsPolicy;
+	TSPolicy				m_TSPolicy;
+	epicsMutexId			m_TSLock;
 
 private:    //  Private class variables
 
-	static  std::map< std::string, TSFifo *>   ms_TSFifoMap;
+	static  std::map< std::string, TSFifo *>	ms_TSFifoMap;
 };
 
 

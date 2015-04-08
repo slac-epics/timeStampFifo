@@ -18,6 +18,7 @@
 
 #include "asynDriver.h"
 #include "evrTime.h"
+#include "drvMrfEr.h"
 #include "timeStampFifo.h"
 
 using namespace		std;
@@ -56,9 +57,10 @@ static void TimeStampFifo(
 	status = pTSFifo->GetTimeStamp( pTimeStamp );
 	if ( status != asynSuccess )
 	{
+		// Defaults to best available timestamp w/ PULSEID_INVALID on error
 		epicsTimeGetCurrent( pTimeStamp );
 		pTimeStamp->nsec |= PULSEID_INVALID;
-		if ( DEBUG_TS_FIFO & 8 )
+		if ( (DEBUG_TS_FIFO & 8) && (DEBUG_TS_FIFO & 2) )
 			printf( "Error %s: GetTimeStamp error %d for port %s\n",
 					functionName, status, pTSFifo->GetPortName() );
 	}
@@ -84,9 +86,26 @@ TSFifo::TSFifo(
 		m_fidDiffPrior(	0				),
 		m_syncCount(	0				),
 		m_syncCountMin(	1				),
-		m_tsPolicy(		tsPolicy		)
+		m_TSPolicy(		tsPolicy		),
+		m_TSLock(		0				)
 {
-	AddTSFifo( this );
+	m_TSLock	= epicsMutexCreate( );
+	if ( m_TSLock )
+		AddTSFifo( this );
+	else
+		printf( "TSFifo: Unable to register TSFifo due to epicsMutexCreate error!\n" );
+}
+
+/// Destructor
+TSFifo::~TSFifo( )
+{
+	if ( m_TSLock )
+	{
+		epicsMutexLock( m_TSLock );
+		DelTSFifo( this );
+		epicsMutexDestroy( m_TSLock );
+		m_TSLock = 0;
+	}
 }
  
 
@@ -156,53 +175,76 @@ int TSFifo::GetTimeStamp(
 	if ( pTimeStampRet == NULL )
 		return -1;
 
-//	TODO: Add locking as needed
-//	epicsMutexLock( lock );
+	//	Lock mutex
+	epicsMutexLock( m_TSLock );
 
+	// Get the last 360hz Fiducial seen by the driver
+	epicsUInt32	fid360	= evrGetLastFiducial();
+
+	// Fetch the most recent timestamp for this event code
+	evrTimeStatus	= evrTimeGet( pTimeStampRet, m_eventCode); 
+
+	bool	syncedPrior	= m_synced;
 	m_synced	= false;
-	if ( m_tsPolicy == TS_EVENT )
+	// If the event code was received during the current 360hz fiducial period, we're synced
+	if ( PULSEID( *pTimeStampRet ) == fid360 )
+		m_synced = true;
+
+	if ( m_TSPolicy == TS_EVENT )
 	{
-		evrTimeStatus	= evrTimeGet( pTimeStampRet, m_eventCode); 
-		if ( evrTimeStatus == 0 )
+		// If evrTimeGet is happy and we were synced before, assume we're still synced
+		if ( evrTimeStatus == 0 && syncedPrior )
 			m_synced = true;
+
+		epicsMutexUnlock( m_TSLock );
 		return evrTimeStatus;
 	}
 
-	epicsUInt32		fidFifo	= PULSEID_INVALID;
-	int				fidDiff	= PULSEID_INVALID;
-
 	// First time or unsynced, m_idxIncr is MAX_TS_QUEUE, which
 	// just gets the most recent FIFO timestamp for that eventCode
-	evrTimeStatus	= evrTimeGetFifo( &fifoTimeStamp, m_eventCode, &m_idx, m_idxIncr );
+	epicsUInt32	fidFifo	= PULSEID_INVALID;
+	fifoTimeStamp.nsec	= PULSEID_INVALID;
+	evrTimeStatus		= evrTimeGetFifo( &fifoTimeStamp, m_eventCode, &m_idx, m_idxIncr );
 	if ( evrTimeStatus == 0 )
 	{
 		m_idxIncr	= 1;
+		fidFifo		= PULSEID( fifoTimeStamp );
 	}
 	else
 	{
-		m_idxIncr	= MAX_TS_QUEUE;	// Reset FIFO
-		if ( DEBUG_TS_FIFO & 2 )
-			printf( "%s unsynced error: evrTimeGetFifo returned status %d\n",
-					functionName, evrTimeStatus );
-		return -1;
+		// 3 possible failure modes for evrTimeGetFifo()
+		//	1.	Invalid event code
+		//		Timestamp not updated
+		//	2.	m_idxIncr was already MAX_TS_QUEUE and no entries in the FIFO for this event code
+		//		Timestamp not updated
+		//	3.	m_idxIncr was 1 and FIFO is drained
+		//		i.e. we've already requested the most recent entry
+		//		Invalid event code or no entries in the FIFO for this event code
+		//		Timestamp not updated
+		//	4.	non-zero fifostatus in FIFO entry
+		//		Timestamp updated but likely has bad fiducial ID
+		//		Probably because evrTimeEventProcessing() thinks we aren't synced
+		m_idxIncr	= MAX_TS_QUEUE;	// Reset FIFO so we get the most recent entry next time
 	}
 
-	fidFifo		= PULSEID( fifoTimeStamp );
-
-	// Get the last 360hz Fiducial
-	int	fidLast	= evrGetLastFiducial();
-	int	fidTgt	= fidLast;
-	if( fidTgt < static_cast<int>( m_delay ) )
+	// Use the expected delay to compute the expected fiducial and make it our target
+	int	fidTgt	= fid360;
+	fidTgt -= static_cast<int>( m_delay );
+	if( fidTgt < 0 )
 		fidTgt	+= FID_MAX;
-	fidTgt -= m_delay;
 
 	// Get the fiducial for this FIFO timestamp and compute
 	// the target error and delta vs the prior fiducial
-	if ( m_fidPrior != PULSEID_INVALID && fidFifo != PULSEID_INVALID )
-		fidDiff	= FID_DIFF( fidFifo, m_fidPrior );
-	int				tgtError = FID_DIFF( fidTgt, fidFifo );
+	int		fidDiff	= PULSEID_INVALID;
+	int		tgtError = PULSEID_INVALID;
+	if ( fidFifo != PULSEID_INVALID )
+	{
+		tgtError = FID_DIFF( fidTgt, fidFifo );
+		if ( m_fidPrior != PULSEID_INVALID )
+			fidDiff	= FID_DIFF( fidFifo, m_fidPrior );
+	}
 
-	// Did we hit our target ficucial?
+	// Did we hit our target pulse?
 	if ( abs(tgtError) <= 2 )
 	{
 		// We're synced!
@@ -212,6 +254,8 @@ int TSFifo::GetTimeStamp(
 	}
 	else
 	{
+		// Target error vs fifo too big or error from evrTimeGetFifo()
+		// Look at most recent timeStamp for eventCode
 		epicsTimeStamp		recentTimeStamp;
 		evrTimeGet( &recentTimeStamp, m_eventCode ); 
 		int	fidRecent	= PULSEID( recentTimeStamp );
@@ -219,21 +263,30 @@ int TSFifo::GetTimeStamp(
 		if ( abs(tgtError) <= 1 )
 		{
 			// The FIFO index was stale, but the most recent entry is the one we want
-			tySync		= CURRENT;
-			m_idxIncr	= MAX_TS_QUEUE;	// Reset FIFO
-			m_synced	= true;
+			tySync			= CURRENT;
+			m_idxIncr		= MAX_TS_QUEUE;	// Reset FIFO
+			m_synced		= true;
+			fifoTimeStamp	= recentTimeStamp;
+			fidFifo			= fidRecent;
+			evrTimeStatus	= 0;
 			m_syncCount++;
 		}
 		else
 		{	// See if we have a consistent fidDiff w/ prior samples
 			if (	m_fidPrior != PULSEID_INVALID
-				&&	m_fidDiffPrior == PULSEID_INVALID
-				&&	m_fidDiffPrior == fidDiff )
+				&&	m_fidDiffPrior != PULSEID_INVALID
+				&&	m_fidDiffPrior == fidDiff
+				&&	m_fidDiffPrior != 0 )
 			{
 				tySync	= FIDDIFF;
 				m_syncCount++;
 				if( m_syncCount >= m_syncCountMin )
+				{
 					m_synced	= true;
+					fifoTimeStamp	= recentTimeStamp;
+					fidFifo			= fidRecent;
+					evrTimeStatus	= 0;
+				}
 			}
 			else
 			{
@@ -265,7 +318,7 @@ int TSFifo::GetTimeStamp(
 	{
 		char		acBuff[40];
 		epicsTimeToStrftime( acBuff, 40, "%H:%M:%S.%04f", &fifoTimeStamp );
-		printf( "%s: %-8s, %-8s, ts %s, fid 0x%X, fidFifo 0x%X, fidLast 0x%X, fidDiff %d, fidDiffPrior %d\n",
+		printf( "%s: %-8s, %-8s, ts %s, fid 0x%X, fidFifo 0x%X, fid360 0x%X, fidDiff %d, fidDiffPrior %d\n",
 				functionName,
 				( m_synced ? "Synced" : "Unsynced" ),
 				(	tySync == CURRENT
@@ -277,10 +330,10 @@ int TSFifo::GetTimeStamp(
 							:	(	tySync == TOO_LATE
 								?	"TOO_LATE"
 								:	"FAILED" ) ) ) ),
-				acBuff, PULSEID(fifoTimeStamp ), fidFifo, fidLast,
+				acBuff, PULSEID(fifoTimeStamp ), fidFifo, fid360,
 				fidDiff, m_fidDiffPrior	);
 	}
-//	epicsMutexUnlock (m_lock);
+	epicsMutexUnlock( m_TSLock );
 
 	if ( m_pSubRecord != NULL )
 	{
@@ -288,13 +341,13 @@ int TSFifo::GetTimeStamp(
 		scanOnce( pDbCommon );
 	}
 
-	if ( m_tsPolicy == TS_SYNCED && !m_synced )
+	if ( m_TSPolicy == TS_SYNCED && !m_synced )
 		return -1;
 
 	// If we have a pulse ID's timestamp, return it
 	if ( PULSEID(fifoTimeStamp) != PULSEID_INVALID )
 		*pTimeStampRet = fifoTimeStamp;
-	else if ( m_tsPolicy == TS_BEST )
+	else if ( m_TSPolicy == TS_BEST )
 	{
 		// Just get the latest 360Hz fiducial timestamp
 		epicsTimeStamp		fidTimeStamp;
@@ -311,9 +364,9 @@ epicsUInt32	TSFifo::Show( int level ) const
 	printf( "\tEventCode:\t%d\n",	m_eventCode );
 	printf( "\tGeneration:\t%d\n",	m_genCount );
 	printf( "\tFidDelay:\t%.3e\n",	m_delay );
-	printf( "\tTS Policy:\t%s\n",	(	m_tsPolicy == TS_EVENT
+	printf( "\tTS Policy:\t%s\n",	(	m_TSPolicy == TS_EVENT
 									?	"EVENT"
-									:	(	m_tsPolicy == TS_BEST
+									:	(	m_TSPolicy == TS_BEST
 										?	"BEST" : "SYNCED" ) ) );
 	printf( "\tSync Status:\t%s\n",	m_synced ? "Synced" : "Unsynced" );
 	return 0;
@@ -412,7 +465,9 @@ extern "C" long TSFifo_Process( aSubRecord	*	pSub	)
 
 	// Update timestamp FIFO parameters
 	epicsInt32	*	pIntVal	= static_cast<epicsInt32 *>( pSub->b );
-	if ( pIntVal != NULL )
+	if (	pIntVal != NULL
+		&&	*pIntVal > 0
+		&&	*pIntVal < MRF_NUM_EVENTS )
 		pTSFifo->m_eventCode	= *pIntVal;
 
 	pIntVal	= static_cast<epicsInt32 *>( pSub->c );
