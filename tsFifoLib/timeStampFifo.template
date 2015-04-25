@@ -51,7 +51,7 @@ record( longin, "$(DEV):EventCode_RBV" )
 {
   field( DESC, "Event code readback" )
   field( INP,  "$(EC_PV_RBV=$(EC_PV)) CPP MS" )
-  info(  autosaveFields, "DESC INP" )
+  info(  autosaveFields, "DESC" )
 }
 
 
