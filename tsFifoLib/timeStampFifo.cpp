@@ -153,11 +153,11 @@ asynStatus TSFifo::RegisterTimeStampSource( )
 }
 
 
-/// Default GetTimestamp policy is to provide the best timestamp available
-/// for the specified event code, TS_EVENT.  A pulse id is encoded into
-/// the least significant 17 bits of the nsec timestamp field, as per
-/// SLAC convention for EVR timestamps.   The pulse id is set to 0x1FFFF
-/// if the timeStampFifo status is unsynced.
+/// GetTimeStamp:  Get the timestamp for the configured event code.
+/// A pulse id is encoded into the least significant 17 bits of the nsec timestamp
+///	field, as per SLAC convention for EVR timestamps.
+/// The pulse id is set to 0x1FFFF if the timeStampFifo status is unsynced.
+///	Behavior depends on the value of m_TSPolicy:
 ///   TS_EVENT	- Most recent timestamp for the specified event code, no matter how old
 ///   TS_SYNCED - If unsynced, no timestamp is provided and GetTimeStamp returns -1.
 ///   TS_BEST   - Provides a synced, pulse id'd timestamp for the specified event code
@@ -178,11 +178,11 @@ int TSFifo::GetTimeStamp(
 	//	Lock mutex
 	epicsMutexLock( m_TSLock );
 
-	// Get the last 360hz Fiducial seen by the driver
-	epicsUInt32	fid360	= evrGetLastFiducial();
-
 	// Fetch the most recent timestamp for this event code
 	evrTimeStatus	= evrTimeGet( pTimeStampRet, m_eventCode); 
+
+	// Get the last 360hz Fiducial seen by the driver
+	epicsUInt32	fid360	= evrGetLastFiducial();
 
 	bool	syncedPrior	= m_synced;
 	m_synced	= false;
