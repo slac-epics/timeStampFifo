@@ -2,6 +2,8 @@
 #define TSFIFO_H
 
 #include <map>
+#include "evrTime.h"
+#include "HiResTime.h"
 
 ///
 /// Header file for interface between EPICS and the software used
@@ -28,22 +30,22 @@ struct	aSubRecord;
 class  TSFifo
 {
 public:
-	/// Default timestamp policy is to provide the best timestamp available
-	/// for the specified event code, TS_EVENT.  A pulse id is encoded into
+	/// Default timestamp policy is to provide the most recent timestamp available
+	/// for the specified event code, TS_LAST_EC.  A pulse id is encoded into
 	/// the least significant 17 bits of the nsec timestamp field, as per
 	/// SLAC convention for EVR timestamps.   The pulse id is set to 0x1FFFF
 	/// if the timeStampFifo status is unsynced.
-	///   TS_EVENT	- Most recent timestamp for the specified event code, no matter how old
+	///   TS_LAST_EC- Most recent timestamp for the specified event code, no matter how old
 	///   TS_SYNCED - If unsynced, no timestamp is provided and GetTimeStamp returns -1.
-	///   TS_BEST   - Provides a synced, pulse id'd timestamp for the specified event code
+	///   TS_TOD    - Provides a synced, pulse id'd timestamp for the specified event code
 	///				  if available.  If not, it provides the current time w/ the most recent
 	///				  fiducial pulse id.
-	enum TSPolicy	{ TS_EVENT = 0, TS_SYNCED = 1, TS_BEST = 2 };
+	enum TSPolicy	{ TS_LAST_EC = 0, TS_SYNCED = 1, TS_TOD = 2 };
 
     /// Constructor
     TSFifo(	const char			*	pPortName,
 			struct	aSubRecord	*	pSubRecord,
-			TSPolicy				tsPolicy = TS_EVENT );
+			TSPolicy				tsPolicy = TS_LAST_EC );
 
     /// Destructor
     virtual ~TSFifo( );
@@ -78,9 +80,11 @@ public:
 	{
 		return m_portName.c_str();
 	}
-
 public:		//  Public class functions
 	static	TSFifo	*	FindByPortName( const std::string & portName );
+
+private:	//  Private member functions
+	int		UpdateFifoInfo( );
 
 private:	//  Private class functions
 	static	void		AddTSFifo( TSFifo * );
@@ -93,7 +97,8 @@ public:		//  Public input member variables
     epicsUInt32				m_eventCode;	/// m_eventCode: Event code for timestamps
     epicsUInt32				m_genCount;		/// m_genCount: Increments each time EVR settings are tweaked
     epicsUInt32				m_genPrior;		/// m_genPrior: prior m_genCount
-	double					m_delay;		/// m_delay:	Expected delay since event code (sec)
+	double					m_delay;		/// m_delay:	Expected delay since event code (fid)
+	double					m_expDelay;		/// m_expDelay:	Expected delay since event code (sec)
 
 	//
 	//	aSub "C" function outputs
@@ -110,6 +115,12 @@ private:	//  Private member variables
 	int						m_fidDiffPrior;
 	int						m_syncCount;
 	int						m_syncCountMin;
+	t_HiResTime				m_tscNow;
+	evrFifoInfo				m_fifoInfo;
+	epicsTimeStamp			m_fifoTimeStamp;
+	double					m_fifoDelay;
+	double					m_diffVsExp;
+	epicsUInt32				m_fidFifo;
 	TSPolicy				m_TSPolicy;
 	epicsMutexId			m_TSLock;
 

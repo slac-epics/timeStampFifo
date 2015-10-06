@@ -1,5 +1,6 @@
 #include <iostream>
 #include <iomanip>
+#include <math.h>
 #include <string>
 #include <string.h>
 #include <stdlib.h>
@@ -20,6 +21,7 @@
 #include "evrTime.h"
 #include "drvMrfEr.h"
 #include "timeStampFifo.h"
+#include "HiResTime.h"
 
 using namespace		std;
 
@@ -77,6 +79,7 @@ TSFifo::TSFifo(
 		m_genCount(		0				),
 		m_genPrior(		0				),
 		m_delay(		0.0				),
+		m_expDelay(		0.0				),
 		m_synced(		false			),
 		m_pSubRecord(	pSubRecord		),
 		m_portName(		pPortName		),
@@ -86,6 +89,10 @@ TSFifo::TSFifo(
 		m_fidDiffPrior(	0				),
 		m_syncCount(	0				),
 		m_syncCountMin(	1				),
+		m_tscNow(		0LL				),
+		m_fifoDelay(	0.0				),
+		m_diffVsExp(	0.0				),
+		m_fidFifo(		PULSEID_INVALID	),
 		m_TSPolicy(		tsPolicy		),
 		m_TSLock(		0				)
 {
@@ -149,6 +156,10 @@ asynStatus TSFifo::RegisterTimeStampSource( )
 				functionName, m_portName.c_str() );
 		return status;
 	}
+	double	secPerTick	= HiResTicksToSeconds( 1LL );
+	if ( DEBUG_TS_FIFO >= 2 )
+		printf( "%s: TimerResolution = %.3esec per tick\n",
+				functionName, secPerTick );
 	return asynSuccess;
 }
 
@@ -158,9 +169,9 @@ asynStatus TSFifo::RegisterTimeStampSource( )
 ///	field, as per SLAC convention for EVR timestamps.
 /// The pulse id is set to 0x1FFFF if the timeStampFifo status is unsynced.
 ///	Behavior depends on the value of m_TSPolicy:
-///   TS_EVENT	- Most recent timestamp for the specified event code, no matter how old
+///   TS_LAST_EC- Most recent timestamp for the specified event code, no matter how old
 ///   TS_SYNCED - If unsynced, no timestamp is provided and GetTimeStamp returns -1.
-///   TS_BEST   - Provides a synced, pulse id'd timestamp for the specified event code
+///   TS_TOD    - Provides a synced, pulse id'd timestamp for the specified event code
 ///				  if available.  If not, it provides the current time w/ the most recent
 ///				  fiducial pulse id.
 int TSFifo::GetTimeStamp(
@@ -168,84 +179,85 @@ int TSFifo::GetTimeStamp(
 {
 	const char		*	functionName	= "TSFifo::GetTimeStamp";
 	int					evrTimeStatus	= 0;
-	epicsTimeStamp		fifoTimeStamp;
+	epicsTimeStamp		curTimeStamp;
+	unsigned int		nStepBacks		= 0;
 	enum SyncType		{ CURRENT, FIDDIFF, FIFODLY, TOO_LATE, FAILED };
 	enum SyncType		tySync	= FAILED;
 
 	if ( pTimeStampRet == NULL )
 		return -1;
 
+	// Update the 64bit timestamp counter
+	m_tscNow	= GetHiResTicks();
+
 	//	Lock mutex
 	epicsMutexLock( m_TSLock );
 
 	// Fetch the most recent timestamp for this event code
-	evrTimeStatus	= evrTimeGet( pTimeStampRet, m_eventCode); 
-
-	// Get the last 360hz Fiducial seen by the driver
-	epicsUInt32	fid360	= evrGetLastFiducial();
+	evrTimeStatus	= evrTimeGet( &curTimeStamp, m_eventCode); 
 
 	bool	syncedPrior	= m_synced;
 	m_synced	= false;
-	// If the event code was received during the current 360hz fiducial period, we're synced
-	if ( PULSEID( *pTimeStampRet ) == fid360 )
-		m_synced = true;
 
-	if ( m_TSPolicy == TS_EVENT )
+	if ( m_TSPolicy == TS_LAST_EC )
 	{
 		// If evrTimeGet is happy and we were synced before, assume we're still synced
 		if ( evrTimeStatus == 0 && syncedPrior )
 			m_synced = true;
 
+		*pTimeStampRet = curTimeStamp;
 		epicsMutexUnlock( m_TSLock );
 		return evrTimeStatus;
 	}
 
+	// Get the last 360hz Fiducial seen by the driver
+	epicsUInt32	fid360	= evrGetLastFiducial();
+
 	// First time or unsynced, m_idxIncr is MAX_TS_QUEUE, which
 	// just gets the most recent FIFO timestamp for that eventCode
-	epicsUInt32	fidFifo	= PULSEID_INVALID;
-	fifoTimeStamp.nsec	= PULSEID_INVALID;
-	evrTimeStatus		= evrTimeGetFifo( &fifoTimeStamp, m_eventCode, &m_idx, m_idxIncr );
-	if ( evrTimeStatus == 0 )
+	evrTimeStatus = UpdateFifoInfo( );
+	if ( evrTimeStatus == 0 && m_diffVsExp > 60e-3 )
 	{
-		m_idxIncr	= 1;
-		fidFifo		= PULSEID( fifoTimeStamp );
+		// This FIFO entry is stale, reset and get the most recent
+		m_idxIncr     = MAX_TS_QUEUE;
+		evrTimeStatus = UpdateFifoInfo( );
 	}
-	else
+	if ( evrTimeStatus != 0 )
 	{
-		// 3 possible failure modes for evrTimeGetFifo()
-		//	1.	Invalid event code
-		//		Timestamp not updated
-		//	2.	m_idxIncr was already MAX_TS_QUEUE and no entries in the FIFO for this event code
-		//		Timestamp not updated
-		//	3.	m_idxIncr was 1 and FIFO is drained
-		//		i.e. we've already requested the most recent entry
-		//		Invalid event code or no entries in the FIFO for this event code
-		//		Timestamp not updated
-		//	4.	non-zero fifostatus in FIFO entry
-		//		Timestamp updated but likely has bad fiducial ID
-		//		Probably because evrTimeEventProcessing() thinks we aren't synced
-		m_idxIncr	= MAX_TS_QUEUE;	// Reset FIFO so we get the most recent entry next time
+		// Nothing available, reset the FIFO increment and give up
+		m_idxIncr     = MAX_TS_QUEUE;
+		epicsMutexUnlock( m_TSLock );
+		return evrTimeStatus;
 	}
 
+	// Good timestamp from FIFO
+	// Set m_idxIncr to advance one next time
+	m_idxIncr		= 1;
+
 	// Use the expected delay to compute the expected fiducial and make it our target
-	int	fidTgt	= fid360;
-	fidTgt -= static_cast<int>( m_delay );
+	double	fidTgt		= fid360 - round(m_delay);
 	if( fidTgt < 0 )
 		fidTgt	+= FID_MAX;
 
-	// Get the fiducial for this FIFO timestamp and compute
-	// the target error and delta vs the prior fiducial
-	int		fidDiff	= PULSEID_INVALID;
-	int		tgtError = PULSEID_INVALID;
-	if ( fidFifo != PULSEID_INVALID )
+	// Compare the fiducial for this FIFO timestamp with the target
+	// Compute the target error and delta vs the prior fiducial
+	int		fidDiff	 = PULSEID_INVALID;
+	double	tgtError = PULSEID_INVALID;
+	if ( m_fidFifo != PULSEID_INVALID )
 	{
-		tgtError = FID_DIFF( fidTgt, fidFifo );
+		tgtError = FID_DIFF( fidTgt, m_fidFifo );
 		if ( m_fidPrior != PULSEID_INVALID )
-			fidDiff	= FID_DIFF( fidFifo, m_fidPrior );
+			fidDiff	= FID_DIFF( m_fidFifo, m_fidPrior );
 	}
+	// double	absTgtError = abs(tgtError);
+
+	if ( DEBUG_TS_FIFO >= 5 )
+		printf( "%s: tgtError=%.2f, expectedDelay=%.2fms, fifoDelay=%.2fms\n",
+				functionName, tgtError, m_expDelay * 1000, m_fifoDelay * 1000 );
 
 	// Did we hit our target pulse?
-	if ( abs(tgtError) <= 2 )
+	// Allow -1ms for sloppy estimated delay and +7ms for late pickup
+	if ( m_diffVsExp > -1e-3 && m_diffVsExp < 7e-3 )
 	{
 		// We're synced!
 		m_synced	= true;
@@ -253,52 +265,63 @@ int TSFifo::GetTimeStamp(
 		tySync	= FIFODLY;
 	}
 	else
-	{
-		// Target error vs fifo too big or error from evrTimeGetFifo()
-		// Look at most recent timeStamp for eventCode
-		epicsTimeStamp		recentTimeStamp;
-		evrTimeGet( &recentTimeStamp, m_eventCode ); 
-		int	fidRecent	= PULSEID( recentTimeStamp );
-		tgtError 		= FID_DIFF( fidTgt, fidRecent );
-		if ( abs(tgtError) <= 1 )
+	{	// See if we have a consistent fidDiff w/ prior samples
+		if (	m_fidPrior     != PULSEID_INVALID
+			&&	m_fidDiffPrior != PULSEID_INVALID
+			&&	m_fidDiffPrior == fidDiff
+			&&	m_fidDiffPrior != 0
+			&&	m_syncCount	   >= m_syncCountMin
+			&&	( m_diffVsExp  > -1e-3 && m_diffVsExp < 15e-3 )
+			&&  syncedPrior )
 		{
-			// The FIFO index was stale, but the most recent entry is the one we want
-			tySync			= CURRENT;
-			m_idxIncr		= MAX_TS_QUEUE;	// Reset FIFO
+			tySync	= FIDDIFF;
+			m_syncCount = 0;
 			m_synced		= true;
-			fifoTimeStamp	= recentTimeStamp;
-			fidFifo			= fidRecent;
-			evrTimeStatus	= 0;
-			m_syncCount++;
 		}
+		// else if ( absTgtError > 1.5 )
+		// else if ( diffVsExp < 0 )
 		else
-		{	// See if we have a consistent fidDiff w/ prior samples
-			if (	m_fidPrior != PULSEID_INVALID
-				&&	m_fidDiffPrior != PULSEID_INVALID
-				&&	m_fidDiffPrior == fidDiff
-				&&	m_fidDiffPrior != 0 )
+		{
+			// Check earlier entries in the FIFO
+			// while ( absTgtError > 1.5 && tgtError < 18.0 )
+			while ( m_diffVsExp < 30e-3 )
 			{
-				tySync	= FIDDIFF;
-				m_syncCount++;
-				if( m_syncCount >= m_syncCountMin )
+				nStepBacks++;
+				m_idxIncr     = -1;
+				evrTimeStatus = UpdateFifoInfo( );
+				if ( evrTimeStatus != 0 )
 				{
-					m_synced	= true;
-					fifoTimeStamp	= recentTimeStamp;
-					fidFifo			= fidRecent;
-					evrTimeStatus	= 0;
+					// FIFO is empty
+					// Reset FIFO so we get the most recent entry next time
+					m_idxIncr	= MAX_TS_QUEUE;
+					tySync		= FAILED;
+					m_synced	= false;
+					m_syncCount	= 0;
+					break;
 				}
-			}
-			else
-			{
-				tySync		= FAILED;
-				m_synced	= false;
-				m_syncCount	= 0;
+
+				tgtError		= FID_DIFF( fidTgt, m_fidFifo );
+				// absTgtError		= abs(tgtError);
+
+				if ( DEBUG_TS_FIFO >= 5 )
+					printf( "%s %d stepBacks: expectedDelay=%.3fms, fifoDelay=%.3fms\n",
+							functionName, nStepBacks, m_expDelay*1000, m_fifoDelay*1000 );
+
+				if ( m_diffVsExp > -1e-3 && m_diffVsExp < 7e-3 )
+				{
+					// Found a match!
+					tySync		= FIFODLY;
+					m_idxIncr	= 1;
+					m_syncCount	= 0;
+					m_synced	= true;	// not yet?
+					break;
+				}
 			}
 		}
 	}
 
 	// Remember prior values
-	m_fidPrior		= fidFifo;
+	m_fidPrior		= m_fidFifo;
 	m_fidDiffPrior	= fidDiff;
 
 	// Check for a generation change
@@ -310,14 +333,14 @@ int TSFifo::GetTimeStamp(
 	{
 		//	Mark unsynced and reset FIFO selector
 		m_idxIncr			= MAX_TS_QUEUE;
-		fifoTimeStamp.nsec	|= PULSEID_INVALID;
+		m_fifoTimeStamp.nsec	|= PULSEID_INVALID;
 	}
 
 	if (	( DEBUG_TS_FIFO & 4 )
 		|| (( DEBUG_TS_FIFO & 2 ) && (tySync == FIDDIFF)) )
 	{
 		char		acBuff[40];
-		epicsTimeToStrftime( acBuff, 40, "%H:%M:%S.%04f", &fifoTimeStamp );
+		epicsTimeToStrftime( acBuff, 40, "%H:%M:%S.%04f", &m_fifoTimeStamp );
 		printf( "%s: %-8s, %-8s, ts %s, fid 0x%X, fidFifo 0x%X, fid360 0x%X, fidDiff %d, fidDiffPrior %d\n",
 				functionName,
 				( m_synced ? "Synced" : "Unsynced" ),
@@ -330,7 +353,7 @@ int TSFifo::GetTimeStamp(
 							:	(	tySync == TOO_LATE
 								?	"TOO_LATE"
 								:	"FAILED" ) ) ) ),
-				acBuff, PULSEID(fifoTimeStamp ), fidFifo, fid360,
+				acBuff, PULSEID(m_fifoTimeStamp ), m_fidFifo, fid360,
 				fidDiff, m_fidDiffPrior	);
 	}
 	epicsMutexUnlock( m_TSLock );
@@ -345,14 +368,62 @@ int TSFifo::GetTimeStamp(
 		return -1;
 
 	// If we have a pulse ID's timestamp, return it
-	if ( PULSEID(fifoTimeStamp) != PULSEID_INVALID )
-		*pTimeStampRet = fifoTimeStamp;
-	else if ( m_TSPolicy == TS_BEST )
+	if ( PULSEID(m_fifoTimeStamp) != PULSEID_INVALID )
+		*pTimeStampRet = m_fifoTimeStamp;
+	else if ( m_TSPolicy == TS_TOD )
 	{
 		// Just get the latest 360Hz fiducial timestamp
 		epicsTimeStamp		fidTimeStamp;
 		evrTimeStatus	= evrTimeGet( &fidTimeStamp, 0 ); 
 		*pTimeStampRet	= fidTimeStamp;
+	}
+	return evrTimeStatus;
+}
+
+
+/// UpdateFifoInfo:  Get the latest fifoInfo for the specified increment
+/// Must be called w/ m_TSLock mutex locked!
+int TSFifo::UpdateFifoInfo( )
+{
+	m_fidFifo				= PULSEID_INVALID;
+	m_fifoTimeStamp.nsec	|= PULSEID_INVALID;
+
+	if ( m_idxIncr == MAX_TS_QUEUE )
+		m_fidPrior = PULSEID_INVALID;
+
+	int evrTimeStatus = evrTimeGetFifoInfo( &m_fifoInfo, m_eventCode, &m_idx, m_idxIncr );
+	if ( evrTimeStatus != 0 )
+	{
+		// 3 possible failure modes for evrTimeGetFifoInfo()
+		//	1.	Invalid event code
+		//		Timestamp not updated
+		//	2.	m_idxIncr was already MAX_TS_QUEUE and no entries in the FIFO for this event code
+		//		Timestamp not updated
+		//	3.	m_idxIncr was 1 and FIFO is drained
+		//		i.e. we've already requested the most recent entry
+		//		Invalid event code or no entries in the FIFO for this event code
+		//		Timestamp not updated
+		//	4.	non-zero fifostatus in FIFO entry
+		//		Timestamp updated but likely has bad fiducial ID
+		//		Probably because evrTimeEventProcessing() thinks we aren't synced
+
+		if ( m_idxIncr != MAX_TS_QUEUE )
+		{
+			// Reset the FIFO and get the most recent entry
+			m_idxIncr = MAX_TS_QUEUE;
+			evrTimeStatus = evrTimeGetFifoInfo( &m_fifoInfo, m_eventCode, &m_idx, MAX_TS_QUEUE );
+		}
+	}
+
+	if ( evrTimeStatus == 0 )
+	{
+		// Good timestamp from FIFO
+		m_fifoTimeStamp	= m_fifoInfo.fifo_time;
+		m_fidFifo		= PULSEID( m_fifoTimeStamp );
+
+		// Compute the delay in seconds since this m_fifoInfo event was collected
+		m_fifoDelay		= HiResTicksToSeconds( m_tscNow - m_fifoInfo.fifo_tsc );
+		m_diffVsExp		= m_fifoDelay - m_expDelay;
 	}
 	return evrTimeStatus;
 }
@@ -364,10 +435,10 @@ epicsUInt32	TSFifo::Show( int level ) const
 	printf( "\tEventCode:\t%d\n",	m_eventCode );
 	printf( "\tGeneration:\t%d\n",	m_genCount );
 	printf( "\tFidDelay:\t%.3e\n",	m_delay );
-	printf( "\tTS Policy:\t%s\n",	(	m_TSPolicy == TS_EVENT
-									?	"EVENT"
-									:	(	m_TSPolicy == TS_BEST
-										?	"BEST" : "SYNCED" ) ) );
+	printf( "\tTS Policy:\t%s\n",	(	m_TSPolicy == TS_LAST_EC
+									?	"LAST_EC"
+									:	(	m_TSPolicy == TS_TOD
+										?	"TOD" : "SYNCED" ) ) );
 	printf( "\tSync Status:\t%s\n",	m_synced ? "Synced" : "Unsynced" );
 	return 0;
 }
@@ -474,15 +545,12 @@ extern "C" long TSFifo_Process( aSubRecord	*	pSub	)
 	if ( pIntVal != NULL )
 		pTSFifo->m_genCount		= *pIntVal;
 
-#if 0
 	double	*	pDblVal	= static_cast<double *>( pSub->d );
 	if ( pDblVal != NULL )
+	{
 		pTSFifo->m_delay		= *pDblVal;
-#else
-	pIntVal	= static_cast<epicsInt32 *>( pSub->d );
-	if ( pIntVal != NULL )
-		pTSFifo->m_delay		= *pIntVal;
-#endif
+		pTSFifo->m_expDelay		= pTSFifo->m_delay / 360.0;
+	}
 
 	pIntVal	= static_cast<epicsInt32 *>( pSub->e );
 	if ( pIntVal != NULL )

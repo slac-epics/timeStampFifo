@@ -25,7 +25,7 @@
 #	B: Event Code PV name
 #	C: Generation count PV name
 #	D: PV name for expected delay in fiducials from event code to acquisition
-#	E: PV name for timestamp policy: 0 = EVENT, 1 = SYNCED, 2 = BEST
+#	E: PV name for timestamp policy: 0 = LAST_EC, 1 = SYNCED, 2 = TOD
 #
 # Outputs
 #	A:	TimeStamp Synced Status: 0 = unlocked, 1 = locked
@@ -39,7 +39,7 @@ record( aSub, "$(DEV):UpdateParams" )
   field( FTA,  "STRING" ) field( INPA, "$(PORT_PV) CPP MS" )
   field( FTB,  "LONG"   ) field( INPB, "$(EC_PV) CPP MS" )
   field( FTC,  "LONG"   ) field( INPC, "$(GEN_PV=$(DEV):Gen) CPP MS" )
-  field( FTD,  "LONG"   ) field( INPD, "$(DLY_PV=$(DEV):FidDelay) CPP MS" )
+  field( FTD,  "DOUBLE" ) field( INPD, "$(DLY_PV=$(DEV):FidDelay) CPP MS" )
   field( FTE,  "LONG"   ) field( INPE, "$(DEV):TsPolicy CPP MS" )
 
   field( OUTA, "$(DEV):SyncStatus PP MS" )
@@ -82,21 +82,28 @@ record( longout, "$(DEV):Gen" )
 # Can be used if your synchronous data device is
 # expected to acquire it's data during the same
 # fiducial as the event code.
-record( longout, "$(DEV):FidDelay" )
+# TODO: Convert to EGU sec and set from camera exposure
+# time plus expected transfer time
+record( ao, "$(DEV):FidDelay" )
 {
   field( DESC, "TSS fid delay" )
-  field( DOL,  "$(DLY=0)" )
+  field( DOL,  "$(DLY=3)" )
+  field( PREC, "3" )
+  field( EGU,  "fid" )
+  field( LOPR, "0" )
+  field( LOLO, "0" )
+  field( LLSV, "MAJOR" )
   field( PINI, "YES" )
-  info(  autosaveFields, "DESC VAL" )
+  info(  autosaveFields, "DESC LOLO LOW HIGH HIHI LLSV LSV HSV HHSV PREC VAL" )
 }
 
 record( mbbo, "$(DEV):TsPolicy" )
 {
   field( DESC, "TS policy" )
   field( DOL,  "$(POLICY=0)" )
-  field( ZRVL, "0" ) field( ZRST, "EVENT" )
+  field( ZRVL, "0" ) field( ZRST, "LAST_EC" )
   field( ONVL, "1" ) field( ONST, "SYNCED" )
-  field( TWVL, "2" ) field( TWST, "BEST" )
+  field( TWVL, "2" ) field( TWST, "TOD" )
   field( PINI, "YES" )
   info(  autosaveFields, "DESC VAL" )
 }
