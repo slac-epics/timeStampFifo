@@ -163,6 +163,20 @@ asynStatus TSFifo::RegisterTimeStampSource( )
 	return asynSuccess;
 }
 
+enum SyncType		{ FIFO_NEXT, FIFO_DLY, FID_DIFF, TOO_LATE, FAILED };
+const char * SyncTypeToStr( SyncType tySync )
+{
+	const char	*	pStr	= "Invalid";
+	switch ( tySync )
+	{
+	case FIFO_NEXT:		pStr	= "FIFO_NEXT";	break;
+	case FIFO_DLY:		pStr	= "FIFO_DLY";	break;
+	case FID_DIFF:		pStr	= "FID_DIFF";	break;
+	case TOO_LATE:		pStr	= "TOO_LATE";	break;
+	case FAILED:		pStr	= "FAILED";		break;
+	}
+	return pStr;
+}
 
 /// GetTimeStamp:  Get the timestamp for the configured event code.
 /// A pulse id is encoded into the least significant 17 bits of the nsec timestamp
@@ -181,7 +195,6 @@ int TSFifo::GetTimeStamp(
 	int					evrTimeStatus	= 0;
 	epicsTimeStamp		curTimeStamp;
 	unsigned int		nStepBacks		= 0;
-	enum SyncType		{ CURRENT, FIDDIFF, FIFODLY, TOO_LATE, FAILED };
 	enum SyncType		tySync	= FAILED;
 
 	if ( pTimeStampRet == NULL )
@@ -213,12 +226,17 @@ int TSFifo::GetTimeStamp(
 	// Get the last 360hz Fiducial seen by the driver
 	epicsUInt32	fid360	= evrGetLastFiducial();
 
+	bool	fifoReset	= false;
+	if ( m_idxIncr == MAX_TS_QUEUE )
+		fifoReset	= true;
+
 	// First time or unsynced, m_idxIncr is MAX_TS_QUEUE, which
 	// just gets the most recent FIFO timestamp for that eventCode
 	evrTimeStatus = UpdateFifoInfo( );
 	if ( evrTimeStatus == 0 && m_diffVsExp > 60e-3 )
 	{
 		// This FIFO entry is stale, reset and get the most recent
+		fifoReset	  = true;
 		m_idxIncr     = MAX_TS_QUEUE;
 		evrTimeStatus = UpdateFifoInfo( );
 	}
@@ -242,18 +260,16 @@ int TSFifo::GetTimeStamp(
 	// Compare the fiducial for this FIFO timestamp with the target
 	// Compute the target error and delta vs the prior fiducial
 	int		fidDiff	 = PULSEID_INVALID;
-	double	tgtError = PULSEID_INVALID;
 	if ( m_fidFifo != PULSEID_INVALID )
 	{
-		tgtError = FID_DIFF( fidTgt, m_fidFifo );
 		if ( m_fidPrior != PULSEID_INVALID )
 			fidDiff	= FID_DIFF( m_fidFifo, m_fidPrior );
 	}
-	// double	absTgtError = abs(tgtError);
 
 	if ( DEBUG_TS_FIFO >= 5 )
-		printf( "%s: tgtError=%.2f, expectedDelay=%.2fms, fifoDelay=%.2fms\n",
-				functionName, tgtError, m_expDelay * 1000, m_fifoDelay * 1000 );
+		printf( "%s: %s FIFO, expectedDelay=%.2fms, fifoDelay=%.2fms\n",
+				functionName, ( fifoReset ? "Reset" : "Next " ),
+				m_expDelay * 1000, m_fifoDelay * 1000 );
 
 	// Did we hit our target pulse?
 	// Allow -1ms for sloppy estimated delay and +7ms for late pickup
@@ -262,7 +278,7 @@ int TSFifo::GetTimeStamp(
 		// We're synced!
 		m_synced	= true;
 		m_syncCount++;
-		tySync	= FIFODLY;
+		tySync	= FIFO_NEXT;
 	}
 	else
 	{	// See if we have a consistent fidDiff w/ prior samples
@@ -274,16 +290,13 @@ int TSFifo::GetTimeStamp(
 			&&	( m_diffVsExp  > -1e-3 && m_diffVsExp < 15e-3 )
 			&&  syncedPrior )
 		{
-			tySync	= FIDDIFF;
+			tySync	= FID_DIFF;
 			m_syncCount = 0;
 			m_synced		= true;
 		}
-		// else if ( absTgtError > 1.5 )
-		// else if ( diffVsExp < 0 )
 		else
 		{
 			// Check earlier entries in the FIFO
-			// while ( absTgtError > 1.5 && tgtError < 18.0 )
 			while ( m_diffVsExp < 30e-3 )
 			{
 				nStepBacks++;
@@ -300,17 +313,14 @@ int TSFifo::GetTimeStamp(
 					break;
 				}
 
-				tgtError		= FID_DIFF( fidTgt, m_fidFifo );
-				// absTgtError		= abs(tgtError);
-
 				if ( DEBUG_TS_FIFO >= 5 )
-					printf( "%s %d stepBacks: expectedDelay=%.3fms, fifoDelay=%.3fms\n",
-							functionName, nStepBacks, m_expDelay*1000, m_fifoDelay*1000 );
+					printf( "%s FIFO incr %2d: expectedDelay=%.3fms, fifoDelay=%.3fms\n",
+							functionName, m_idxIncr, m_expDelay*1000, m_fifoDelay*1000 );
 
 				if ( m_diffVsExp > -1e-3 && m_diffVsExp < 7e-3 )
 				{
 					// Found a match!
-					tySync		= FIFODLY;
+					tySync		= FIFO_DLY;
 					m_idxIncr	= 1;
 					m_syncCount	= 0;
 					m_synced	= true;	// not yet?
@@ -337,22 +347,14 @@ int TSFifo::GetTimeStamp(
 	}
 
 	if (	( DEBUG_TS_FIFO & 4 )
-		|| (( DEBUG_TS_FIFO & 2 ) && (tySync == FIDDIFF)) )
+		|| (( DEBUG_TS_FIFO & 2 ) && m_synced ) )
 	{
 		char		acBuff[40];
 		epicsTimeToStrftime( acBuff, 40, "%H:%M:%S.%04f", &m_fifoTimeStamp );
 		printf( "%s: %-8s, %-8s, ts %s, fid 0x%X, fidFifo 0x%X, fid360 0x%X, fidDiff %d, fidDiffPrior %d\n",
 				functionName,
 				( m_synced ? "Synced" : "Unsynced" ),
-				(	tySync == CURRENT
-				?	"CURRENT"
-				:	(	tySync == FIDDIFF
-		  			?	"FIDDIFF"
-						:	(	tySync == FIFODLY
-						?	"FIFODLY"
-							:	(	tySync == TOO_LATE
-								?	"TOO_LATE"
-								:	"FAILED" ) ) ) ),
+				SyncTypeToStr( tySync ),
 				acBuff, PULSEID(m_fifoTimeStamp ), m_fidFifo, fid360,
 				fidDiff, m_fidDiffPrior	);
 	}
