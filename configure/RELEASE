@@ -12,7 +12,7 @@ EPICS_BASE=$(EPICS_SITE_TOP)/base/$(BASE_MODULE_VERSION)
 # Define the version of modules needed by
 # IOC apps or other Support apps
 # =============================================================
-ADCORE_MODULE_VERSION			= R2.1-0.3.0
+ADCORE_MODULE_VERSION			= R2.1-0.3.1
 ASYN_MODULE_VERSION				= R4.23-0.4.0
 DIAG_TIMER_MODULE_VERSION		= R1.6.0
 EVENT2_MODULE_VERSION			= R4.0.0-2.13.0
