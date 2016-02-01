@@ -9,10 +9,10 @@
 # Optional macros:
 #	GEN_PV	- PV which updates on each timing change which requires a resync
 #				Defaults to $(DEV):Gen
-#	DLY_PV	- PV which can be read to fetch the expected delay in fiducial count
+#	DLY_PV	- PV which can be read to fetch the expected delay in seconds
 #				between the event code and the timestamp request
-#				Defaults to $(DEV):FidDelay
-#	DLY		- Delay value for $(DEV):FidDelay
+#				Defaults to $(DEV):ExpectedDelay
+#	DLY		- Delay value for $(DEV):ExpectedDelay
 #				Not used if you provide your own DLY_PV
 #
 
@@ -78,18 +78,16 @@ record( longout, "$(DEV):Gen" )
 }
 
 
-# Default timestamp fiducial delay PV
+# Default timestamp delay PV
 # Can be used if your synchronous data device is
 # expected to acquire it's data during the same
 # fiducial as the event code.
-# TODO: Convert to EGU sec and set from camera exposure
-# time plus expected transfer time
-record( ao, "$(DEV):FidDelay" )
+record( ao, "$(DEV):ExpectedDelay" )
 {
-  field( DESC, "TSS fid delay" )
-  field( DOL,  "$(DLY=3)" )
+  field( DESC, "TSS expected delay" )
+  field( DOL,  "$(DLY=0.007)" )
   field( PREC, "3" )
-  field( EGU,  "fid" )
+  field( EGU,  "sec" )
   field( LOPR, "0" )
   field( LOLO, "0" )
   field( LLSV, "MAJOR" )

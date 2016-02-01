@@ -467,7 +467,7 @@ extern "C" long TSFifo_Init(	aSubRecord	*	pSub	)
 //		A:	Port name, a stringIn or stringOut record
 //		B:	Event code for timestamp
 //		C:	Generation counter for EventCode timing, should increment on any timing change
-//		D:	Expected delay in fiducials between the eventCode and the ts query
+//		D:	Expected delay in seconds between the eventCode and the ts query
 //
 //	Outputs
 //		A:	TSFifo Sync Status: 0 = unlocked, 1 = locked
@@ -549,9 +549,9 @@ extern "C" long TSFifo_Process( aSubRecord	*	pSub	)
 
 	double	*	pDblVal	= static_cast<double *>( pSub->d );
 	if ( pDblVal != NULL )
-	{
+	{	// Fetch the expected delay in sec between the trigger and the timestamp update
 		pTSFifo->m_delay		= *pDblVal;
-		pTSFifo->m_expDelay		= pTSFifo->m_delay / 360.0;
+		pTSFifo->m_expDelay		= pTSFifo->m_delay;
 	}
 
 	pIntVal	= static_cast<epicsInt32 *>( pSub->e );

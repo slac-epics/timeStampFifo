@@ -12,10 +12,10 @@ EPICS_BASE=$(EPICS_SITE_TOP)/base/$(BASE_MODULE_VERSION)
 # Define the version of modules needed by
 # IOC apps or other Support apps
 # =============================================================
-ADCORE_MODULE_VERSION			= R2.1-0.3.1
-ASYN_MODULE_VERSION				= R4.23-0.4.0
-DIAG_TIMER_MODULE_VERSION		= R1.6.0
-EVENT2_MODULE_VERSION			= R4.0.0-2.13.0
+ADCORE_MODULE_VERSION			= R2.1-0.4.0
+ASYN_MODULE_VERSION				= R4.23-0.5.0
+DIAG_TIMER_MODULE_VERSION		= R1.7.0
+EVENT2_MODULE_VERSION			= R4.0.0-2.16.0
 
 # ============================================================
 # External Support module path definitions
@@ -33,7 +33,6 @@ EVENT2_MODULE_VERSION			= R4.0.0-2.13.0
 ADCORE			= $(EPICS_MODULES)/ADCore/$(ADCORE_MODULE_VERSION)
 ASYN			= $(EPICS_MODULES)/asyn/$(ASYN_MODULE_VERSION)
 DIAG_TIMER		= $(EPICS_MODULES)/diagTimer/$(DIAG_TIMER_MODULE_VERSION)
-#EVENT			= $(EPICS_MODULES)/event/$(EVENT_MODULE_VERSION)
 EVENT2			= $(EPICS_MODULES)/event2/$(EVENT2_MODULE_VERSION)
 
 #MY_MODULES=/reg/neh/home/bhill/wa2/trunk/pcds/epics/modules

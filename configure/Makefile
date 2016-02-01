@@ -10,7 +10,7 @@ include $(TOP)/configure/CONFIG
 # Set CHECK_RELEASE to NO to disable checking completely.
 # Set CHECK_RELEASE to WARN to perform consistency checking,
 # but continue the build even if conflicts are found.
-CHECK_RELEASE = WARN
+CHECK_RELEASE = YES
 
 TARGETS = $(CONFIG_TARGETS)
 CONFIGS += $(subst ../,,$(wildcard $(CONFIG_INSTALLS)))
