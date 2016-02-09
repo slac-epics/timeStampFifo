@@ -9,11 +9,11 @@
 # Optional macros:
 #	GEN_PV	- PV which updates on each timing change which requires a resync
 #				Defaults to $(DEV):Gen
-#	DLY_PV	- PV which can be read to fetch the expected delay in seconds
+#	TSDLY_PV- PV which can be read to fetch the expected delay in seconds
 #				between the event code and the timestamp request
 #				Defaults to $(DEV):ExpectedDelay
 #	DLY		- Delay value for $(DEV):ExpectedDelay
-#				Not used if you provide your own DLY_PV
+#				Not used if you provide your own TSDLY_PV
 #
 
 #
@@ -39,7 +39,7 @@ record( aSub, "$(DEV):UpdateParams" )
   field( FTA,  "STRING" ) field( INPA, "$(PORT_PV) CPP MS" )
   field( FTB,  "LONG"   ) field( INPB, "$(EC_PV) CPP MS" )
   field( FTC,  "LONG"   ) field( INPC, "$(GEN_PV=$(DEV):Gen) CPP MS" )
-  field( FTD,  "DOUBLE" ) field( INPD, "$(DLY_PV=$(DEV):FidDelay) CPP MS" )
+  field( FTD,  "DOUBLE" ) field( INPD, "$(TSDLY_PV=$(DEV):ExpectedDelay) CPP MS" )
   field( FTE,  "LONG"   ) field( INPE, "$(DEV):TsPolicy CPP MS" )
 
   field( OUTA, "$(DEV):SyncStatus PP MS" )

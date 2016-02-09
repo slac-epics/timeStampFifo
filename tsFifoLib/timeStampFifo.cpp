@@ -436,7 +436,7 @@ epicsUInt32	TSFifo::Show( int level ) const
 	printf( "TSFifo for port %s\n",	m_portName.c_str() );
 	printf( "\tEventCode:\t%d\n",	m_eventCode );
 	printf( "\tGeneration:\t%d\n",	m_genCount );
-	printf( "\tFidDelay:\t%.3e\n",	m_delay );
+	printf( "\tExpDelay:\t%.3e\n",	m_delay );
 	printf( "\tTS Policy:\t%s\n",	(	m_TSPolicy == TS_LAST_EC
 									?	"LAST_EC"
 									:	(	m_TSPolicy == TS_TOD
