@@ -195,7 +195,7 @@ int TSFifo::GetTimeStamp(
 	int					evrTimeStatus	= 0;
 	epicsTimeStamp		curTimeStamp;
 	unsigned int		nStepBacks		= 0;
-	enum SyncType		tySync	= FAILED;
+	enum SyncType		tySync			= FAILED;
 
 	if ( pTimeStampRet == NULL )
 		return -1;
@@ -209,6 +209,9 @@ int TSFifo::GetTimeStamp(
 	// Fetch the most recent timestamp for this event code
 	evrTimeStatus	= evrTimeGet( &curTimeStamp, m_eventCode); 
 
+	// Get the last 360hz Fiducial seen by the driver
+	epicsUInt32	fid360	= evrGetLastFiducial();
+
 	bool	syncedPrior	= m_synced;
 	m_synced	= false;
 
@@ -219,12 +222,15 @@ int TSFifo::GetTimeStamp(
 			m_synced = true;
 
 		*pTimeStampRet = curTimeStamp;
+		evrTimeStatus = UpdateFifoInfo( );
 		epicsMutexUnlock( m_TSLock );
+
+		if ( DEBUG_TS_FIFO >= 5 )
+			printf( "%s: LAST_EC, expectedDelay=%.2fms, fifoDelay=%.2fms\n",
+					functionName,
+					m_expDelay * 1000, m_fifoDelay * 1000 );
 		return evrTimeStatus;
 	}
-
-	// Get the last 360hz Fiducial seen by the driver
-	epicsUInt32	fid360	= evrGetLastFiducial();
 
 	bool	fifoReset	= false;
 	if ( m_idxIncr == MAX_TS_QUEUE )
@@ -273,7 +279,7 @@ int TSFifo::GetTimeStamp(
 
 	// Did we hit our target pulse?
 	// Allow -1ms for sloppy estimated delay and +7ms for late pickup
-	if ( m_diffVsExp > -1e-3 && m_diffVsExp < 7e-3 )
+	if ( -4e-3 < m_diffVsExp && m_diffVsExp <= 7e-3 )
 	{
 		// We're synced!
 		m_synced	= true;
@@ -287,17 +293,17 @@ int TSFifo::GetTimeStamp(
 			&&	m_fidDiffPrior == fidDiff
 			&&	m_fidDiffPrior != 0
 			&&	m_syncCount	   >= m_syncCountMin
-			&&	( m_diffVsExp  > -1e-3 && m_diffVsExp < 15e-3 )
+			&&	( -4e-3 < m_diffVsExp && m_diffVsExp <= 15e-3 )
 			&&  syncedPrior )
 		{
-			tySync	= FID_DIFF;
+			tySync		= FID_DIFF;
 			m_syncCount = 0;
-			m_synced		= true;
+			m_synced	= true;
 		}
 		else
 		{
 			// Check earlier entries in the FIFO
-			while ( m_diffVsExp < 30e-3 )
+			while ( 8e-3 < m_diffVsExp )
 			{
 				nStepBacks++;
 				m_idxIncr     = -1;
@@ -317,7 +323,7 @@ int TSFifo::GetTimeStamp(
 					printf( "%s FIFO incr %2d: expectedDelay=%.3fms, fifoDelay=%.3fms\n",
 							functionName, m_idxIncr, m_expDelay*1000, m_fifoDelay*1000 );
 
-				if ( m_diffVsExp > -1e-3 && m_diffVsExp < 7e-3 )
+				if ( -4e-3 < m_diffVsExp && m_diffVsExp <= 7e-3 )
 				{
 					// Found a match!
 					tySync		= FIFO_DLY;
@@ -342,8 +348,8 @@ int TSFifo::GetTimeStamp(
 	if ( !m_synced )
 	{
 		//	Mark unsynced and reset FIFO selector
-		m_idxIncr			= MAX_TS_QUEUE;
-		m_fifoTimeStamp.nsec	|= PULSEID_INVALID;
+		m_idxIncr			  = MAX_TS_QUEUE;
+		m_fifoTimeStamp.nsec |= PULSEID_INVALID;
 	}
 
 	if (	( DEBUG_TS_FIFO & 4 )
@@ -387,7 +393,7 @@ int TSFifo::GetTimeStamp(
 /// Must be called w/ m_TSLock mutex locked!
 int TSFifo::UpdateFifoInfo( )
 {
-	m_fidFifo				= PULSEID_INVALID;
+	m_fidFifo				 = PULSEID_INVALID;
 	m_fifoTimeStamp.nsec	|= PULSEID_INVALID;
 
 	if ( m_idxIncr == MAX_TS_QUEUE )
