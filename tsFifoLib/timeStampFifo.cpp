@@ -303,7 +303,7 @@ int TSFifo::GetTimeStamp(
 		else
 		{
 			// Check earlier entries in the FIFO
-			while ( 8e-3 < m_diffVsExp )
+			while ( m_diffVsExp < 15e-3 )
 			{
 				nStepBacks++;
 				m_idxIncr     = -1;
