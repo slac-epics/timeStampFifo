@@ -226,10 +226,24 @@ int TSFifo::GetTimeStamp(
 		epicsMutexUnlock( m_TSLock );
 
 		if ( DEBUG_TS_FIFO >= 5 )
-			printf( "%s: LAST_EC, expectedDelay=%.2fms, fifoDelay=%.2fms\n",
+			printf( "%s: LAST_EC, expectedDelay=%.2fms, fifoDelay=%.2fms, fid 0x%X\n",
 					functionName,
-					m_expDelay * 1000, m_fifoDelay * 1000 );
+					m_expDelay * 1000, m_fifoDelay * 1000, PULSEID(curTimeStamp) );
 		return evrTimeStatus;
+	}
+	
+	if ( m_TSPolicy == TS_TOD )
+	{
+		// Just get the latest 360Hz fiducial timestamp
+		epicsTimeStamp		fidTimeStamp;
+		evrTimeStatus	= evrTimeGet( &fidTimeStamp, 0 ); 
+		*pTimeStampRet	= fidTimeStamp;
+
+		if ( DEBUG_TS_FIFO >= 5 )
+			printf( "%s: TOD, expectedDelay=%.2fms, fifoDelay=%.2fms, fid 0x%X\n",
+					functionName,
+					m_expDelay * 1000, m_fifoDelay * 1000, fid360 );
+		return 0;
 	}
 
 	bool	fifoReset	= false;
@@ -361,7 +375,7 @@ int TSFifo::GetTimeStamp(
 				functionName,
 				( m_synced ? "Synced" : "Unsynced" ),
 				SyncTypeToStr( tySync ),
-				acBuff, PULSEID(m_fifoTimeStamp ), m_fidFifo, fid360,
+				acBuff, PULSEID(m_fifoTimeStamp), m_fidFifo, fid360,
 				fidDiff, m_fidDiffPrior	);
 	}
 	epicsMutexUnlock( m_TSLock );
@@ -378,13 +392,6 @@ int TSFifo::GetTimeStamp(
 	// If we have a pulse ID's timestamp, return it
 	if ( PULSEID(m_fifoTimeStamp) != PULSEID_INVALID )
 		*pTimeStampRet = m_fifoTimeStamp;
-	else if ( m_TSPolicy == TS_TOD )
-	{
-		// Just get the latest 360Hz fiducial timestamp
-		epicsTimeStamp		fidTimeStamp;
-		evrTimeStatus	= evrTimeGet( &fidTimeStamp, 0 ); 
-		*pTimeStampRet	= fidTimeStamp;
-	}
 	return evrTimeStatus;
 }
 
