@@ -81,6 +81,9 @@ TSFifo::TSFifo(
 		m_delay(		0.0				),
 		m_expDelay(		0.0				),
 		m_synced(		false			),
+		m_diffVsExp(	0.0				),
+		m_diffVsExpMin(	0.0				),
+		m_diffVsExpMax(	0.0				),
 		m_pSubRecord(	pSubRecord		),
 		m_portName(		pPortName		),
 		m_idx(			0LL				),
@@ -91,7 +94,6 @@ TSFifo::TSFifo(
 		m_syncCountMin(	1				),
 		m_tscNow(		0LL				),
 		m_fifoDelay(	0.0				),
-		m_diffVsExp(	0.0				),
 		m_fidFifo(		PULSEID_INVALID	),
 		m_TSPolicy(		tsPolicy		),
 		m_TSLock(		0				)
@@ -158,8 +160,8 @@ asynStatus TSFifo::RegisterTimeStampSource( )
 	}
 	double	secPerTick	= HiResTicksToSeconds( 1LL );
 	if ( DEBUG_TS_FIFO >= 2 )
-		printf( "%s: TimerResolution = %.3esec per tick\n",
-				functionName, secPerTick );
+		printf( "TimeStampSource: Registered %s.  TimerResolution = %.3esec per tick\n",
+				m_portName.c_str(), secPerTick );
 	return asynSuccess;
 }
 
@@ -231,7 +233,7 @@ int TSFifo::GetTimeStamp(
 					m_expDelay * 1000, m_fifoDelay * 1000, PULSEID(curTimeStamp) );
 		return evrTimeStatus;
 	}
-	
+
 	if ( m_TSPolicy == TS_TOD )
 	{
 		// Just get the latest 360Hz fiducial timestamp
@@ -240,9 +242,7 @@ int TSFifo::GetTimeStamp(
 		*pTimeStampRet	= fidTimeStamp;
 
 		if ( DEBUG_TS_FIFO >= 5 )
-			printf( "%s: TOD, expectedDelay=%.2fms, fifoDelay=%.2fms, fid 0x%X\n",
-					functionName,
-					m_expDelay * 1000, m_fifoDelay * 1000, fid360 );
+			printf( "%s: TOD, fid 0x%X\n", functionName, fid360 );
 		return 0;
 	}
 
@@ -292,13 +292,17 @@ int TSFifo::GetTimeStamp(
 				m_expDelay * 1000, m_fifoDelay * 1000 );
 
 	// Did we hit our target pulse?
-	// Allow -1ms for sloppy estimated delay and +7ms for late pickup
-	if ( -4e-3 < m_diffVsExp && m_diffVsExp <= 7e-3 )
+	// Allow -2ms for sloppy estimated delay and +7ms for late pickup
+	if ( -2e-3 < m_diffVsExp && m_diffVsExp <= 7e-3 )
 	{
 		// We're synced!
 		m_synced	= true;
 		m_syncCount++;
 		tySync	= FIFO_NEXT;
+		if( m_diffVsExpMax < m_diffVsExp )
+			m_diffVsExpMax = m_diffVsExp;
+		if( m_diffVsExpMin > m_diffVsExp )
+			m_diffVsExpMin = m_diffVsExp;
 	}
 	else
 	{	// See if we have a consistent fidDiff w/ prior samples
@@ -311,8 +315,16 @@ int TSFifo::GetTimeStamp(
 			&&  syncedPrior )
 		{
 			tySync		= FID_DIFF;
-			m_syncCount = 0;
+			if( m_syncCount > m_syncCountMin )
+				m_syncCount = m_syncCountMin;
+			else
+				m_syncCount = 0;
 			m_synced	= true;
+
+			if( m_diffVsExpMax < m_diffVsExp )
+				m_diffVsExpMax = m_diffVsExp;
+			if( m_diffVsExpMin > m_diffVsExp )
+				m_diffVsExpMin = m_diffVsExp;
 		}
 		else
 		{
@@ -443,19 +455,38 @@ int TSFifo::UpdateFifoInfo( )
 	return evrTimeStatus;
 }
 
+void TSFifo::ResetExpectedDelay()
+{
+	if ( DEBUG_TS_FIFO >= 1 )
+	{
+		printf( "expDelay=%.2fms, earliest=expDelay%.3fms, latest=expDelay+%.3fms\n",
+				m_expDelay * 1000, m_diffVsExpMin * 1000, m_diffVsExpMax * 1000 );
+	}
+	m_diffVsExpMin	= 0.0;
+	m_diffVsExpMax	= 0.0;
+}
 
 epicsUInt32	TSFifo::Show( int level ) const
 {
 	printf( "TSFifo for port %s\n",	m_portName.c_str() );
 	printf( "\tEventCode:\t%d\n",	m_eventCode );
 	printf( "\tGeneration:\t%d\n",	m_genCount );
-	printf( "\tExpDelay:\t%.3e\n",	m_delay );
+	printf( "\tExpDelay:\t%.2fms,\tearliest=%.3fms,\tlatest=%.3fms\n",
+			m_expDelay * 1000, m_diffVsExpMin * 1000, m_diffVsExpMax * 1000 );
 	printf( "\tTS Policy:\t%s\n",	(	m_TSPolicy == TS_LAST_EC
 									?	"LAST_EC"
 									:	(	m_TSPolicy == TS_TOD
 										?	"TOD" : "SYNCED" ) ) );
 	printf( "\tSync Status:\t%s\n",	m_synced ? "Synced" : "Unsynced" );
 	return 0;
+}
+
+void TSFifo::ListPorts()
+{
+	map<string, TSFifo *>::iterator   it;
+	for ( it = ms_TSFifoMap.begin(); it != ms_TSFifoMap.end(); it++ )
+		printf( "%s ", it->first.c_str() );
+	printf( "\n" );
 }
 
 
@@ -481,14 +512,21 @@ extern "C" long TSFifo_Init(	aSubRecord	*	pSub	)
 //		B:	Event code for timestamp
 //		C:	Generation counter for EventCode timing, should increment on any timing change
 //		D:	Expected delay in seconds between the eventCode and the ts query
+//		E:	TimeStamp policy
+//		F:	TimeStamp FreeRun mode
 //
 //	Outputs
 //		A:	TSFifo Sync Status: 0 = unlocked, 1 = locked
+//		B:	DiffVsExp,    ms
+//		C:	DiffVsExpMin, ms
+//		D:	DiffVsExpMax, ms
 //
 extern "C" long TSFifo_Process( aSubRecord	*	pSub	)
 {
 	TSFifo		*   pTSFifo	= NULL;
 	int				status	= 0;
+	bool			fTimeStampCriteriaChanged = false;
+
 	if ( DEBUG_TS_FIFO & 8 )
 	{
 		cout	<<	"TSFifo_Process: " << pSub->name	<<	endl;
@@ -554,30 +592,75 @@ extern "C" long TSFifo_Process( aSubRecord	*	pSub	)
 	if (	pIntVal != NULL
 		&&	*pIntVal > 0
 		&&	*pIntVal < MRF_NUM_EVENTS )
-		pTSFifo->m_eventCode	= *pIntVal;
+	{
+		if( pTSFifo->m_eventCode	!= static_cast<epicsUInt32>(*pIntVal) )
+		{
+			pTSFifo->m_eventCode	= static_cast<epicsUInt32>(*pIntVal);
+			fTimeStampCriteriaChanged = true;
+		}
+	}
 
 	pIntVal	= static_cast<epicsInt32 *>( pSub->c );
 	if ( pIntVal != NULL )
-		pTSFifo->m_genCount		= *pIntVal;
+	{
+		if( pTSFifo->m_genCount	!= static_cast<epicsUInt32>(*pIntVal) )
+		{
+			pTSFifo->m_genCount	= static_cast<epicsUInt32>(*pIntVal);
+			fTimeStampCriteriaChanged = true;
+		}
+	}
 
 	double	*	pDblVal	= static_cast<double *>( pSub->d );
 	if ( pDblVal != NULL )
 	{	// Fetch the expected delay in sec between the trigger and the timestamp update
 		pTSFifo->m_delay		= *pDblVal;
-		pTSFifo->m_expDelay		= pTSFifo->m_delay;
+		if ( pTSFifo->m_expDelay != pTSFifo->m_delay )
+		{
+			pTSFifo->m_expDelay		= pTSFifo->m_delay;
+			fTimeStampCriteriaChanged = true;
+		}
 	}
 
-	pIntVal	= static_cast<epicsInt32 *>( pSub->e );
-	if ( pIntVal != NULL )
+	// First see if we're in FreeRun mode
+	pIntVal	= static_cast<epicsInt32 *>( pSub->f );
+	if ( pIntVal != NULL  && *pIntVal == 1 )
 	{
-		TSFifo::TSPolicy	tsPolicy = static_cast<TSFifo::TSPolicy>(*pIntVal);
-		pTSFifo->SetTimeStampPolicy( tsPolicy );
+		// Always use TOD in FreeRun mode
+		pTSFifo->SetTimeStampPolicy( TSFifo::TS_TOD );
 	}
+	else	// else follow selected TsPolicy
+	{
+		pIntVal	= static_cast<epicsInt32 *>( pSub->e );
+		if ( pIntVal != NULL )
+		{
+			TSFifo::TSPolicy	tsPolicy = static_cast<TSFifo::TSPolicy>(*pIntVal);
+			if ( pTSFifo->GetTimeStampPolicy() != tsPolicy )
+			{
+				pTSFifo->SetTimeStampPolicy( tsPolicy );
+				fTimeStampCriteriaChanged = true;
+			}
+		}
+	}
+
+	if ( fTimeStampCriteriaChanged )
+		pTSFifo->ResetExpectedDelay();
 
 	// Update outputs
 	pIntVal	= static_cast<epicsInt32 *>( pSub->vala );
 	if ( pIntVal != NULL )
 		*pIntVal	= pTSFifo->m_synced;
+
+	pDblVal	= static_cast<double *>( pSub->valb );
+	if ( pDblVal != NULL )
+		*pDblVal	= pTSFifo->m_diffVsExp * 1000;
+
+	pDblVal	= static_cast<double *>( pSub->valc );
+	if ( pDblVal != NULL )
+		*pDblVal	= pTSFifo->m_diffVsExpMin * 1000;
+
+	pDblVal	= static_cast<double *>( pSub->vald );
+	if ( pDblVal != NULL )
+		*pDblVal	= pTSFifo->m_diffVsExpMax * 1000;
 
 	return status;
 }
@@ -611,7 +694,11 @@ static void		ShowTSFifo_CallFunc( const iocshArgBuf * args )
 	if ( pTSFifo != NULL )
 		pTSFifo->Show( args[1].ival );
 	else
+	{
 		printf( "Error: Unable to find TSFifo %s\n", args[0].sval );
+		printf( "Available TSFifo Ports are:\n" );
+		TSFifo::ListPorts();
+	}
 }
 static void ShowTSFifo_Register( void )
 {

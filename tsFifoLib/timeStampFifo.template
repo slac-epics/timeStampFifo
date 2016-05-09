@@ -24,11 +24,15 @@
 #	A: Port PV name
 #	B: Event Code PV name
 #	C: Generation count PV name
-#	D: PV name for expected delay in fiducials from event code to acquisition
+#	D: PV name for expected delay in seconds from event code to acquisition
 #	E: PV name for timestamp policy: 0 = LAST_EC, 1 = SYNCED, 2 = TOD
+#	F: TimeStampFifo FreeRun mode: 0 = Triggered, 1 = FreeRun
 #
 # Outputs
 #	A:	TimeStamp Synced Status: 0 = unlocked, 1 = locked
+#	B:	DiffVsExp,    ms
+#	C:	DiffVsExpMin, ms
+#	D:	DiffVsExpMax, ms
 #
 record( aSub, "$(DEV):UpdateParams" )
 {
@@ -41,9 +45,16 @@ record( aSub, "$(DEV):UpdateParams" )
   field( FTC,  "LONG"   ) field( INPC, "$(GEN_PV=$(DEV):Gen) CPP NMS" )
   field( FTD,  "DOUBLE" ) field( INPD, "$(TSDLY_PV=$(DEV):ExpectedDelay) CPP NMS" )
   field( FTE,  "LONG"   ) field( INPE, "$(DEV):TsPolicy CPP NMS" )
+  field( FTF,  "LONG"   ) field( INPF, "$(DEV):TsFreeRun CPP NMS" )
 
   field( OUTA, "$(DEV):SyncStatus PP MS" )
   field( FTVA, "LONG"   )
+  field( OUTB, "$(DEV):DiffVsExp PP MS" )
+  field( FTVB, "DOUBLE"   )
+  field( OUTC, "$(DEV):DiffVsExpMin PP MS" )
+  field( FTVC, "DOUBLE"   )
+  field( OUTD, "$(DEV):DiffVsExpMax PP MS" )
+  field( FTVD, "DOUBLE"   )
   info(  autosaveFields, "DESC" )
 }
 
@@ -78,10 +89,8 @@ record( longout, "$(DEV):Gen" )
 }
 
 
-# Default timestamp delay PV
-# Can be used if your synchronous data device is
-# expected to acquire it's data during the same
-# fiducial as the event code.
+# Expected delay in seconds between the event code and
+# the timestamp request
 record( ao, "$(DEV):ExpectedDelay" )
 {
   field( DESC, "TSS expected delay" )
@@ -95,6 +104,42 @@ record( ao, "$(DEV):ExpectedDelay" )
   info(  autosaveFields, "DESC LOLO LOW HIGH HIHI LLSV LSV HSV HHSV PREC VAL" )
 }
 
+# Diff versus expected delay in ms
+record( ao, "$(DEV):DiffVsExp" )
+{
+  field( PREC, "3" )
+  field( EGU,  "ms" )
+  field( LOW,  "-2" )
+  field( LSV,  "MINOR" )
+  field( HIGH, "4" )
+  field( HSV,  "MINOR" )
+  info(  autosaveFields, "DESC LOLO LOW HIGH HIHI LLSV LSV HSV HHSV PREC" )
+}
+
+# Minimum Diff versus expected delay in ms
+record( ao, "$(DEV):DiffVsExpMin" )
+{
+  field( PREC, "3" )
+  field( EGU,  "ms" )
+  field( LOW,  "-2" )
+  field( LSV,  "MINOR" )
+  field( HIGH, "4" )
+  field( HSV,  "MINOR" )
+  info(  autosaveFields, "DESC LOLO LOW HIGH HIHI LLSV LSV HSV HHSV PREC" )
+}
+
+# Max Diff versus expected delay in ms
+record( ao, "$(DEV):DiffVsExpMax" )
+{
+  field( PREC, "3" )
+  field( EGU,  "ms" )
+  field( LOW,  "-2" )
+  field( LSV,  "MINOR" )
+  field( HIGH, "4" )
+  field( HSV,  "MINOR" )
+  info(  autosaveFields, "DESC LOLO LOW HIGH HIHI LLSV LSV HSV HHSV PREC" )
+}
+
 record( mbbo, "$(DEV):TsPolicy" )
 {
   field( DESC, "TS policy" )
@@ -104,4 +149,12 @@ record( mbbo, "$(DEV):TsPolicy" )
   field( TWVL, "2" ) field( TWST, "TOD" )
   field( PINI, "YES" )
   info(  autosaveFields, "DESC VAL" )
+}
+
+record( bo, "$(DEV):TsFreeRun" )
+{
+  field( DESC, "TSS FreeRun" )
+  field( ZNAM, "Triggered" )
+  field( ONAM, "FreeRun" )
+  info(  autosaveFields, "DESC ZNAM ONAM ZSV OSV" )
 }

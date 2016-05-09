@@ -69,6 +69,11 @@ public:
 		m_TSPolicy = tsPolicy;
 	}
 
+	/// ResetExpectedDelay()
+	/// Resets Expected delay values for diagnostic tracking
+	/// Auto-Resets on changes to timeStamp criteria
+	void	ResetExpectedDelay();
+
 	/// Show()
 	/// Display pertinent TSFifo info on stdout
 	epicsUInt32	Show( int level ) const;
@@ -82,6 +87,8 @@ public:
 	}
 public:		//  Public class functions
 	static	TSFifo	*	FindByPortName( const std::string & portName );
+	
+	static	void		ListPorts( );
 
 private:	//  Private member functions
 	int		UpdateFifoInfo( );
@@ -104,6 +111,9 @@ public:		//  Public input member variables
 	//	aSub "C" function outputs
 	//
 	bool					m_synced;		/// m_synced: True if synced
+	double					m_diffVsExp;	/// Diff vs expectedDelay (ms)
+	double					m_diffVsExpMin;	/// Minimum Diff vs expectedDelay (ms)
+	double					m_diffVsExpMax;	/// Maximum Diff vs expectedDelay (ms)
 
 	struct	aSubRecord	*	m_pSubRecord;
 
@@ -119,7 +129,6 @@ private:	//  Private member variables
 	evrFifoInfo				m_fifoInfo;
 	epicsTimeStamp			m_fifoTimeStamp;
 	double					m_fifoDelay;
-	double					m_diffVsExp;
 	epicsUInt32				m_fidFifo;
 	TSPolicy				m_TSPolicy;
 	epicsMutexId			m_TSLock;
