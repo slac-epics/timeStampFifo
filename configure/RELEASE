@@ -15,7 +15,7 @@ EPICS_BASE=$(EPICS_SITE_TOP)/base/$(BASE_MODULE_VERSION)
 ADCORE_MODULE_VERSION			= R2.1-0.4.0
 ASYN_MODULE_VERSION				= R4.23-0.5.0
 DIAG_TIMER_MODULE_VERSION		= R1.7.0
-EVENT2_MODULE_VERSION			= R4.0.0-4.2.0
+EVENT2_MODULE_VERSION			= R4.0.0-4.2.2
 
 # ============================================================
 # External Support module path definitions
