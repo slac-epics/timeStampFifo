@@ -1,0 +1,40 @@
+# RELEASE.local
+#
+# Read definitions of:
+#	EPICS_SITE_TOP
+#	BASE_MODULE_VERSION
+#	EPICS_MODULES 
+# from one of the following options
+-include $(TOP)/../../RELEASE_SITE
+-include $(TOP)/RELEASE_SITE
+
+# Check that EPICS_MODULES was defined in a RELEASE_SITE file
+-include $(TOP)/../../RELEASE_SITE.check
+
+# ==========================================================
+# Define the version strings for all needed modules
+# ==========================================================
+ADCORE_MODULE_VERSION			= R2.6-0.3.0
+ASYN_MODULE_VERSION				= R4.31-0.1.0
+DIAG_TIMER_MODULE_VERSION		= R1.9.0
+EVENT2_MODULE_VERSION			= R4.2.0
+
+# ==========================================================
+# Define module paths using pattern
+# ==========================================================
+ADCORE			= $(EPICS_MODULES)/ADCore/$(ADCORE_MODULE_VERSION)
+ASYN			= $(EPICS_MODULES)/asyn/$(ASYN_MODULE_VERSION)
+DIAG_TIMER		= $(EPICS_MODULES)/diagTimer/$(DIAG_TIMER_MODULE_VERSION)
+EVENT2			= $(EPICS_MODULES)/event2/$(EVENT2_MODULE_VERSION)
+
+# Set EPICS_BASE last so it appears last in the DB, DBD, INCLUDE, and LIB search paths
+EPICS_BASE = $(EPICS_SITE_TOP)/base/$(BASE_MODULE_VERSION)
+
+# Check for invalid or undefined EPICS_BASE
+-include $(TOP)/../../EPICS_BASE.check
+
+#MY_MODULES=/reg/neh/home/bhill/wa2/trunk/pcds/epics/modules
+#MY_MODULES=/afs/slac/u/ey/bhill/wa4/trunk/pcds/epics/modules
+#ADCORE=$(MY_MODULES)/ADCore/current
+#ASYN=$(MY_MODULES)/asyn/current
+#EVENT2=$(MY_MODULES)/event2/current

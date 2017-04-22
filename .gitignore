@@ -1,0 +1,8 @@
+bin
+db
+dbd
+lib
+include
+RELEASE_SITE
+O.*
+*.log

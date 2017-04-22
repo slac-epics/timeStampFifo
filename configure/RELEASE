@@ -1,42 +1,20 @@
 # RELEASE
 # Defines location of external products
-include $(TOP)/RELEASE_SITE
+# Run "gnumake clean uninstall install" in the application
+# top directory each time this file is changed.
+-include $(TOP)/configure/RELEASE.local
 
-# ===============================================================
-# Define the location and version of EPICS base
-# ===============================================================
-BASE_MODULE_VERSION=R3.14.12-0.4.0
-EPICS_BASE=$(EPICS_SITE_TOP)/base/$(BASE_MODULE_VERSION)
+# Check for valid macro definitions for module release directories
+ifeq ($(wildcard $(ADCORE)),)
+$(error Invalid ADCORE): $(ADCORE))
+endif
+ifeq ($(wildcard $(ASYN)),)
+$(error Invalid ASYN): $(ASYN))
+endif
+ifeq ($(wildcard $(DIAG_TIMER)),)
+$(error Invalid DIAG_TIMER): $(DIAG_TIMER))
+endif
+ifeq ($(wildcard $(EVENT2)),)
+$(error Invalid EVENT2): $(EVENT2))
+endif
 
-# ===============================================================
-# Define the version of modules needed by
-# IOC apps or other Support apps
-# =============================================================
-ADCORE_MODULE_VERSION			= R2.1-0.4.0
-ASYN_MODULE_VERSION				= R4.23-0.5.0
-DIAG_TIMER_MODULE_VERSION		= R1.7.0
-EVENT2_MODULE_VERSION			= R4.0.0-4.2.3
-
-# ============================================================
-# External Support module path definitions
-#
-# If any of these macros expand to a path which
-# contains an "include" directory, that directory will be
-# included in the compiler include path.
-#
-# If any of these macros expand to a path which
-# contains a "lib/<arch>" directory, that directory will be
-# included in the compiler link path for that architecture.
-#
-# If your build fails, look for these paths in your build output
-# ============================================================
-ADCORE			= $(EPICS_MODULES)/ADCore/$(ADCORE_MODULE_VERSION)
-ASYN			= $(EPICS_MODULES)/asyn/$(ASYN_MODULE_VERSION)
-DIAG_TIMER		= $(EPICS_MODULES)/diagTimer/$(DIAG_TIMER_MODULE_VERSION)
-EVENT2			= $(EPICS_MODULES)/event2/$(EVENT2_MODULE_VERSION)
-
-#MY_MODULES=/reg/neh/home/bhill/wa2/trunk/pcds/epics/modules
-#MY_MODULES=/afs/slac/u/ey/bhill/wa4/trunk/pcds/epics/modules
-#ADCORE=$(MY_MODULES)/ADCore/current
-#ASYN=$(MY_MODULES)/asyn/current
-#EVENT2=$(MY_MODULES)/event2/current
