@@ -19,7 +19,7 @@
 
 #include "asynDriver.h"
 #include "evrTime.h"
-#include "drvMrfEr.h"
+#include "mrfCommon.h"
 #include "timeStampFifo.h"
 #include "HiResTime.h"
 
