@@ -1,6 +1,9 @@
 #
 # RELEASE_NOTES
 #
+R1.5.6	2017-06-14
+	Update to event2/R4.2.2 for evrIrqHandler fix for spurious error codes
+
 R1.5.5  2017-05-18 Hugo Slepicka
     Updated ADCore to R2.6-2.2.0
 

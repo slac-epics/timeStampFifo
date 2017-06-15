@@ -17,7 +17,7 @@
 ADCORE_MODULE_VERSION			= R2.6-2.2.0
 ASYN_MODULE_VERSION				= R4.31-1.0.0
 DIAG_TIMER_MODULE_VERSION		= R1.9.0
-EVENT2_MODULE_VERSION			= R4.2.1
+EVENT2_MODULE_VERSION			= R4.2.2
 
 # ==========================================================
 # Define module paths using pattern
