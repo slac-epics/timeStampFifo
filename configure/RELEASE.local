@@ -14,10 +14,10 @@
 # ==========================================================
 # Define the version strings for all needed modules
 # ==========================================================
-ADCORE_MODULE_VERSION			= R2.6-2.2.0
+ADCORE_MODULE_VERSION			= R2.6-2.3.0
 ASYN_MODULE_VERSION				= R4.31-1.0.0
-DIAG_TIMER_MODULE_VERSION		= R1.9.0
-EVENT2_MODULE_VERSION			= R4.2.2
+DIAG_TIMER_MODULE_VERSION		= R1.9.1
+EVENT2_MODULE_VERSION			= R4.2.4
 
 # ==========================================================
 # Define module paths using pattern
