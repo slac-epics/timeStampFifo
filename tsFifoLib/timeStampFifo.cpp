@@ -19,8 +19,8 @@
 
 #include "asynDriver.h"
 #include "evrTime.h"
-#include "mrfCommon.h"
 #include "timeStampFifo.h"
+#include "timingFifoApi.h"
 #include "HiResTime.h"
 
 using namespace		std;
@@ -418,10 +418,10 @@ int TSFifo::UpdateFifoInfo( )
 	if ( m_idxIncr == MAX_TS_QUEUE )
 		m_fidPrior = PULSEID_INVALID;
 
-	int evrTimeStatus = evrTimeGetFifoInfo( &m_fifoInfo, m_eventCode, &m_idx, m_idxIncr );
+	int evrTimeStatus = timingFifoRead( m_eventCode, m_idxIncr, &m_idx, &m_fifoInfo );
 	if ( evrTimeStatus != 0 )
 	{
-		// 3 possible failure modes for evrTimeGetFifoInfo()
+		// 3 possible failure modes for timingFifoRead() TODO: Confirm this comment still valid
 		//	1.	Invalid event code
 		//		Timestamp not updated
 		//	2.	m_idxIncr was already MAX_TS_QUEUE and no entries in the FIFO for this event code
@@ -438,7 +438,7 @@ int TSFifo::UpdateFifoInfo( )
 		{
 			// Reset the FIFO and get the most recent entry
 			m_idxIncr = MAX_TS_QUEUE;
-			evrTimeStatus = evrTimeGetFifoInfo( &m_fifoInfo, m_eventCode, &m_idx, MAX_TS_QUEUE );
+			evrTimeStatus = timingFifoRead( m_eventCode, MAX_TS_QUEUE, &m_idx, &m_fifoInfo );
 		}
 	}
 
@@ -589,9 +589,7 @@ extern "C" long TSFifo_Process( aSubRecord	*	pSub	)
 
 	// Update timestamp FIFO parameters
 	epicsInt32	*	pIntVal	= static_cast<epicsInt32 *>( pSub->b );
-	if (	pIntVal != NULL
-		&&	*pIntVal > 0
-		&&	*pIntVal < MRF_NUM_EVENTS )
+	if (	pIntVal != NULL &&	*pIntVal > 0 )
 	{
 		if( pTSFifo->m_eventCode	!= static_cast<epicsUInt32>(*pIntVal) )
 		{

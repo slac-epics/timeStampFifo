@@ -14,7 +14,7 @@ endif
 ifeq ($(wildcard $(DIAG_TIMER)),)
 $(error Invalid DIAG_TIMER): $(DIAG_TIMER))
 endif
-ifeq ($(wildcard $(EVENT2)),)
-$(error Invalid EVENT2): $(EVENT2))
+ifeq ($(wildcard $(TIMING_API)),)
+$(error Invalid TIMING_API): $(TIMING_API))
 endif
 
