@@ -1,6 +1,9 @@
 #
 # RELEASE_NOTES
 #
+R1.5.9	2018-1-19
+	Updated to event2/R4.3.0
+
 R1.5.8	2017-11-13
 	Updated ADCore/R2.6-2.4.0
 
