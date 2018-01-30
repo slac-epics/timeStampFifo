@@ -14,8 +14,8 @@
 # ==========================================================
 # Define the version strings for all needed modules
 # ==========================================================
-ADCORE_MODULE_VERSION			= R2.6-2.4.0
-ASYN_MODULE_VERSION				= R4.31-1.0.0
+ADCORE_MODULE_VERSION			= R3.1-2.0.0
+ASYN_MODULE_VERSION				= R4.32-1.0.0
 DIAG_TIMER_MODULE_VERSION		= R1.9.1
 EVENT2_MODULE_VERSION			= R4.3.0
 
