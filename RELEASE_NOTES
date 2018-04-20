@@ -1,6 +1,9 @@
 #
 # RELEASE_NOTES
 #
+R1.5.13	2018-4-19
+	Updated to event2/R5.1.0 and diagTimer/R1.9.2
+
 R1.5.12	2018-3-29
 	Updated to ADCore/R3.1-2.1.1
 
