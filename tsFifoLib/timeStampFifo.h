@@ -122,15 +122,15 @@ private:	//  Private member variables
 	std::string				m_portName;
 	uint64_t				m_idx;
 	int						m_idxIncr;
-	int						m_fidPrior;
-	int						m_fidDiffPrior;
+	TimingPulseId			m_fidPrior;
+	TimingPulseId			m_fidDiffPrior;
 	int						m_syncCount;
 	int						m_syncCountMin;
 	t_HiResTime				m_tscNow;
 	EventTimingData			m_fifoInfo;
 	epicsTimeStamp			m_fifoTimeStamp;
 	double					m_fifoDelay;
-	epicsUInt32				m_fidFifo;
+	TimingPulseId			m_fidFifo;
 	TSPolicy				m_TSPolicy;
 	epicsMutexId			m_TSLock;
 
