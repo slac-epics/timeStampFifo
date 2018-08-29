@@ -14,10 +14,10 @@
 # ==========================================================
 # Define the version strings for all needed modules
 # ==========================================================
-ADCORE_MODULE_VERSION			= R3.1-2.1.1
+ADCORE_MODULE_VERSION			= R3.1-2.2.0
 ASYN_MODULE_VERSION				= R4.32-1.0.0
 DIAG_TIMER_MODULE_VERSION		= R1.9.2
-EVENT2_MODULE_VERSION			= R5.1.0
+EVENT2_MODULE_VERSION			= R4.4.0
 
 # ==========================================================
 # Define module paths using pattern
@@ -35,6 +35,8 @@ EPICS_BASE = $(EPICS_SITE_TOP)/base/$(BASE_MODULE_VERSION)
 
 #MY_MODULES=/reg/neh/home/bhill/wa2/trunk/pcds/epics/modules
 #MY_MODULES=/afs/slac/u/ey/bhill/wa4/trunk/pcds/epics/modules
-#ADCORE=$(MY_MODULES)/ADCore/current
-#ASYN=$(MY_MODULES)/asyn/current
-#EVENT2=$(MY_MODULES)/event2/current
+#MY_MODULES=/reg/neh/home/bhill/git-wa-neh/modules
+#ADCORE=$(MY_MODULES)/ADCore-git
+#ASYN=$(MY_MODULES)/asyn-git
+#DIAG_TIMER=$(MY_MODULES)/diagTimer-git
+#EVENT2=$(MY_MODULES)/event2-git
