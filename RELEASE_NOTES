@@ -1,6 +1,10 @@
 #
 # RELEASE_NOTES
 #
+R1.6.0	2018-8-29
+	Added guards and diagnostics that help when SMP systems have rdtsc skew between cores.
+	Update to ADCore/R3.1-2.2.0 and event2/R4.4.0
+
 R1.5.13	2018-4-19
 	Updated to event2/R5.1.0 and diagTimer/R1.9.2
 
