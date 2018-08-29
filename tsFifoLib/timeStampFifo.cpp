@@ -9,7 +9,7 @@
 #include <iocsh.h>
 #include <registryFunction.h>
 #include <epicsExport.h>
-#include <epicsThread.h>
+// #include <epicsThread.h>
 #include <dbFldTypes.h>
 #include <aSubRecord.h>
 #include <dbAddr.h>
@@ -255,16 +255,35 @@ int TSFifo::GetTimeStamp(
 	evrTimeStatus = UpdateFifoInfo( );
 	if ( evrTimeStatus == 0 && m_diffVsExp > 60e-3 )
 	{
-		// This FIFO entry is stale, reset and get the most recent
-		fifoReset	  = true;
-		m_idxIncr     = MAX_TS_QUEUE;
-		evrTimeStatus = UpdateFifoInfo( );
+		if ( m_idxIncr != MAX_TS_QUEUE )
+		{
+			if ( DEBUG_TS_FIFO > 5 )
+				printf( "%s: Reject FIFO, expectedDelay=%.2fms, fifoDelay=%.2fms, diffVsExp=%.2fms, idxIncr=%d\n",
+						functionName, m_expDelay * 1000, m_fifoDelay * 1000, m_diffVsExp * 1000, m_idxIncr );
+
+			// This FIFO entry is stale, reset and get the most recent
+			fifoReset	  = true;
+			m_idxIncr     = MAX_TS_QUEUE;
+			evrTimeStatus = UpdateFifoInfo( );
+		}
+		else
+		{
+			if ( DEBUG_TS_FIFO >= 5 )
+				printf( "%s: Stale  FIFO, expectedDelay=%.2fms, fifoDelay=%.2fms, diffVsExp=%.2fms\n",
+						functionName, m_expDelay * 1000, m_fifoDelay * 1000, m_diffVsExp * 1000 );
+		}
 	}
 	if ( evrTimeStatus != 0 )
 	{
 		// Nothing available, reset the FIFO increment and give up
 		m_idxIncr     = MAX_TS_QUEUE;
 		epicsMutexUnlock( m_TSLock );
+		if ( DEBUG_TS_FIFO >= 5 )
+		{
+			int	fidFifo = PULSEID( m_fifoInfo.fifo_time );
+			printf( "UpdateFifoInfo error fetching fifo info for eventCode %d, incr %d: evrTimeStatus=%d, fidFifo=%d\n",
+					m_eventCode, m_idxIncr, evrTimeStatus, fidFifo );
+		}
 		return evrTimeStatus;
 	}
 
@@ -287,9 +306,16 @@ int TSFifo::GetTimeStamp(
 	}
 
 	if ( DEBUG_TS_FIFO >= 5 )
-		printf( "%s: %s FIFO, expectedDelay=%.2fms, fifoDelay=%.2fms\n",
-				functionName, ( fifoReset ? "Reset" : "Next " ),
-				m_expDelay * 1000, m_fifoDelay * 1000 );
+	{
+		if ( m_fidFifo == PULSEID_INVALID )
+			printf( "%s: %s Error FIFO, expectedDelay=%.2fms, fifoDelay=%.2fms, fidFifo 0x%X\n",
+					functionName, ( fifoReset ? "Reset" : "Next " ),
+					m_expDelay * 1000, m_fifoDelay * 1000, m_fidFifo );
+		else
+			printf( "%s: %s  FIFO, expectedDelay=%.2fms, fifoDelay=%.2fms\n",
+					functionName, ( fifoReset ? "Reset" : "Next " ),
+					m_expDelay * 1000, m_fifoDelay * 1000 );
+	}
 
 	// Did we hit our target pulse?
 	// Allow -2ms for sloppy estimated delay and +7ms for late pickup
@@ -329,7 +355,7 @@ int TSFifo::GetTimeStamp(
 		else
 		{
 			// Check earlier entries in the FIFO
-			while ( m_diffVsExp < 15e-3 )
+			while ( m_diffVsExp < 15e-3 && m_fifoDelay > -1e-3 )
 			{
 				nStepBacks++;
 				m_idxIncr     = -1;
@@ -346,8 +372,8 @@ int TSFifo::GetTimeStamp(
 				}
 
 				if ( DEBUG_TS_FIFO >= 5 )
-					printf( "%s FIFO incr %2d: expectedDelay=%.3fms, fifoDelay=%.3fms\n",
-							functionName, m_idxIncr, m_expDelay*1000, m_fifoDelay*1000 );
+					printf( "%s FIFO incr %2d: expectedDelay=%.3fms, fifoDelay=%.3fms, diffVsExp=%.3f\n",
+							functionName, m_idxIncr, m_expDelay*1000, m_fifoDelay*1000, m_diffVsExp*1000 );
 
 				if ( -4e-3 < m_diffVsExp && m_diffVsExp <= 7e-3 )
 				{
@@ -414,6 +440,8 @@ int TSFifo::UpdateFifoInfo( )
 {
 	m_fidFifo				 = PULSEID_INVALID;
 	m_fifoTimeStamp.nsec	|= PULSEID_INVALID;
+	m_fifoDelay				 = 0;
+	m_diffVsExp				 = 0;
 
 	if ( m_idxIncr == MAX_TS_QUEUE )
 		m_fidPrior = PULSEID_INVALID;
@@ -421,7 +449,7 @@ int TSFifo::UpdateFifoInfo( )
 	int evrTimeStatus = evrTimeGetFifoInfo( &m_fifoInfo, m_eventCode, &m_idx, m_idxIncr );
 	if ( evrTimeStatus != 0 )
 	{
-		// 3 possible failure modes for evrTimeGetFifoInfo()
+		// 5 possible failure modes for evrTimeGetFifoInfo()
 		//	1.	Invalid event code
 		//		Timestamp not updated
 		//	2.	m_idxIncr was already MAX_TS_QUEUE and no entries in the FIFO for this event code
@@ -433,12 +461,22 @@ int TSFifo::UpdateFifoInfo( )
 		//	4.	non-zero fifostatus in FIFO entry
 		//		Timestamp updated but likely has bad fiducial ID
 		//		Probably because evrTimeEventProcessing() thinks we aren't synced
+		if ( DEBUG_TS_FIFO >= 5 )
+		{
+			int	fidFifo = PULSEID( m_fifoInfo.fifo_time );
+			printf( "UpdateFifoInfo error fetching fifo info for eventCode %d, incr %u: evrTimeStatus=%d, fidFifo=%d\n",
+					m_eventCode, m_idxIncr, evrTimeStatus, fidFifo );
+		}
 
 		if ( m_idxIncr != MAX_TS_QUEUE )
 		{
 			// Reset the FIFO and get the most recent entry
 			m_idxIncr = MAX_TS_QUEUE;
 			evrTimeStatus = evrTimeGetFifoInfo( &m_fifoInfo, m_eventCode, &m_idx, MAX_TS_QUEUE );
+			if ( evrTimeStatus != 0 && ( DEBUG_TS_FIFO >= 5 ) )
+			{
+				printf( "UpdateFifoInfo error on reset fetch of fifo info for eventCode %d: evrTimeStatus=%d\n", m_eventCode, evrTimeStatus );
+			}
 		}
 	}
 
@@ -451,6 +489,13 @@ int TSFifo::UpdateFifoInfo( )
 		// Compute the delay in seconds since this m_fifoInfo event was collected
 		m_fifoDelay		= HiResTicksToSeconds( m_tscNow - m_fifoInfo.fifo_tsc );
 		m_diffVsExp		= m_fifoDelay - m_expDelay;
+		if ( DEBUG_TS_FIFO >= 7 )
+		{
+			t_HiResTime	tscNow	= GetHiResTicks();
+			double tscDelay	= HiResTicksToSeconds( tscNow - m_tscNow );
+			printf( "UpdateFifoInfo: EC=%d, incr=%u, fidFifo=%d, m_tscNow=%llu, fifoTsc=%llu, tscDelay=%0.3f\n",
+					m_eventCode, m_idxIncr, m_fidFifo, m_tscNow, m_fifoInfo.fifo_tsc, tscDelay*1000 );
+		}
 	}
 	return evrTimeStatus;
 }
