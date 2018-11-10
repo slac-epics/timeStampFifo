@@ -554,7 +554,7 @@ extern "C" long TSFifo_Init(	aSubRecord	*	pSub	)
 //	
 //	Inputs:
 //		A:	Port name, a stringIn or stringOut record
-//		B:	Event code for timestamp
+//		B:	Beam Event code for timestamp
 //		C:	Generation counter for EventCode timing, should increment on any timing change
 //		D:	Expected delay in seconds between the eventCode and the ts query
 //		E:	TimeStamp policy
