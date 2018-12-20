@@ -559,6 +559,8 @@ extern "C" long TSFifo_Init(	aSubRecord	*	pSub	)
 //		D:	Expected delay in seconds between the eventCode and the ts query
 //		E:	TimeStamp policy
 //		F:	TimeStamp FreeRun mode
+// TODO: Add support for 2 event codes, Beam and Camera
+//		G:	Camera trigger Event code for synchronization
 //
 //	Outputs
 //		A:	TSFifo Sync Status: 0 = unlocked, 1 = locked
