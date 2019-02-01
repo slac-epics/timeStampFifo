@@ -1,6 +1,9 @@
 #
 # RELEASE_NOTES
 #
+R1.6.3	2019-01-31 Bruce Hill
+	Update to event2/R5.4.0
+
 R1.6.2	2018-12-18 Bruce Hill
 	Update to event2/R4.6.0
 
