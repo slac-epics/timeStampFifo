@@ -236,13 +236,17 @@ int TSFifo::GetTimeStamp(
 
 	if ( m_TSPolicy == TS_TOD )
 	{
-		// Just get the latest 360Hz fiducial timestamp
-		epicsTimeStamp		fidTimeStamp;
-		evrTimeStatus	= evrTimeGet( &fidTimeStamp, 0 ); 
-		*pTimeStampRet	= fidTimeStamp;
+		// Just get the latest system timestamp
+		epicsTimeStamp		todTimeStamp;
+		evrTimeStatus	= epicsTimeGetCurrent( &todTimeStamp ); 
+		*pTimeStampRet	= todTimeStamp;
 
 		if ( DEBUG_TS_FIFO >= 5 )
-			printf( "%s: TOD, fid 0x%X\n", functionName, fid360 );
+		{
+			char		acBuff[40];
+			epicsTimeToStrftime( acBuff, 40, "%H:%M:%S.%04f", &todTimeStamp );
+			printf( "%s: TOD, %s\n", functionName, acBuff );
+		}
 		return 0;
 	}
 
