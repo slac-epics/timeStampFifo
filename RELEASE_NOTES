@@ -1,6 +1,9 @@
 #
 # RELEASE_NOTES
 #
+R1.7.0	2019-02-08 Bruce Hill
+	Make TOD use epicsTimeGetCurrent() instead of evrTimeGet().
+
 R1.6.3	2019-01-31 Bruce Hill
 	Update to event2/R5.4.0
 
