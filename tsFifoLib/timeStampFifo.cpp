@@ -322,8 +322,14 @@ int TSFifo::GetTimeStamp(
 	}
 
 	// Did we hit our target pulse?
+	// Original test:
 	// Allow -2ms for sloppy estimated delay and +7ms for late pickup
-	if ( -2e-3 < m_diffVsExp && m_diffVsExp <= 7e-3 )
+	//if ( -2e-3 < m_diffVsExp && m_diffVsExp <= 7e-3 )
+	// New test is proportional to allow for variations in long transmit
+	// time for gigE cameras.
+	// Allow 40% early for sloppy estimated delay and 80% late
+	double	diffVsExpPercent = m_diffVsExp * 100.0 / m_expDelay; 
+	if ( -0.40 < diffVsExpPercent && diffVsExpPercent <= 80.0 )
 	{
 		// We're synced!
 		m_synced	= true;
