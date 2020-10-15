@@ -91,7 +91,7 @@ public:		//  Public class functions
 	static	void		ListPorts( );
 
 private:	//  Private member functions
-	int		UpdateFifoInfo( );
+	int		UpdateFifoInfo( bool fFirstUpdate );
 
 private:	//  Private class functions
 	static	void		AddTSFifo( TSFifo * );
@@ -114,6 +114,8 @@ public:		//  Public input member variables
 	double					m_diffVsExp;	/// Diff vs expectedDelay (ms)
 	double					m_diffVsExpMin;	/// Minimum Diff vs expectedDelay (ms)
 	double					m_diffVsExpMax;	/// Maximum Diff vs expectedDelay (ms)
+	double					m_fifoDelayMin;	/// Minimum m_fifoDelay (sec)
+	double					m_fifoDelayMax;	/// Maximum m_fifoDelay (sec)
 
 	struct	aSubRecord	*	m_pSubRecord;
 

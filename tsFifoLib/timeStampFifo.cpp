@@ -196,6 +196,7 @@ int TSFifo::GetTimeStamp(
 	const char		*	functionName	= "TSFifo::GetTimeStamp";
 	int					evrTimeStatus	= 0;
 	epicsTimeStamp		curTimeStamp;
+	bool				fFirstUpdate	= true;
 	unsigned int		nStepBacks		= 0;
 	enum SyncType		tySync			= FAILED;
 
@@ -224,7 +225,8 @@ int TSFifo::GetTimeStamp(
 			m_synced = true;
 
 		*pTimeStampRet = curTimeStamp;
-		evrTimeStatus = UpdateFifoInfo( );
+		evrTimeStatus = UpdateFifoInfo( fFirstUpdate );
+		fFirstUpdate = false;
 		epicsMutexUnlock( m_TSLock );
 
 		if ( DEBUG_TS_FIFO >= 5 )
@@ -256,7 +258,8 @@ int TSFifo::GetTimeStamp(
 
 	// First time or unsynced, m_idxIncr is MAX_TS_QUEUE, which
 	// just gets the most recent FIFO timestamp for that eventCode
-	evrTimeStatus = UpdateFifoInfo( );
+	evrTimeStatus = UpdateFifoInfo( fFirstUpdate );
+	fFirstUpdate = false;
 	if ( evrTimeStatus == 0 && m_diffVsExp > 60e-3 )
 	{
 		if ( m_idxIncr != MAX_TS_QUEUE )
@@ -268,7 +271,8 @@ int TSFifo::GetTimeStamp(
 			// This FIFO entry is stale, reset and get the most recent
 			fifoReset	  = true;
 			m_idxIncr     = MAX_TS_QUEUE;
-			evrTimeStatus = UpdateFifoInfo( );
+			evrTimeStatus = UpdateFifoInfo( fFirstUpdate );
+			fFirstUpdate = false;
 		}
 		else
 		{
@@ -342,12 +346,13 @@ int TSFifo::GetTimeStamp(
 	}
 	else
 	{	// See if we have a consistent fidDiff w/ prior samples
+		double	diffVsExpPercent = m_diffVsExp * 100.0 / m_expDelay; 
 		if (	m_fidPrior     != PULSEID_INVALID
 			&&	m_fidDiffPrior != PULSEID_INVALID
 			&&	m_fidDiffPrior == fidDiff
 			&&	m_fidDiffPrior != 0
 			&&	m_syncCount	   >= m_syncCountMin
-			&&	( -4e-3 < m_diffVsExp && m_diffVsExp <= 15e-3 )
+			&&	( -40.0 < diffVsExpPercent && diffVsExpPercent <= 80.0 )
 			&&  syncedPrior )
 		{
 			tySync		= FID_DIFF;
@@ -365,11 +370,12 @@ int TSFifo::GetTimeStamp(
 		else
 		{
 			// Check earlier entries in the FIFO
-			while ( m_diffVsExp < 15e-3 && m_fifoDelay > -1e-3 )
+			while ( m_diffVsExp <= (2*m_expDelay) && m_fifoDelay > -1e-3 )
 			{
 				nStepBacks++;
 				m_idxIncr     = -1;
-				evrTimeStatus = UpdateFifoInfo( );
+				evrTimeStatus = UpdateFifoInfo( fFirstUpdate );
+				fFirstUpdate = false;
 				if ( evrTimeStatus != 0 )
 				{
 					// FIFO is empty
@@ -385,7 +391,8 @@ int TSFifo::GetTimeStamp(
 					printf( "%s FIFO incr %2d: expectedDelay=%.3fms, fifoDelay=%.3fms, diffVsExp=%.3f\n",
 							functionName, m_idxIncr, m_expDelay*1000, m_fifoDelay*1000, m_diffVsExp*1000 );
 
-				if ( -4e-3 < m_diffVsExp && m_diffVsExp <= 7e-3 )
+				double	diffVsExpPercent = m_diffVsExp * 100.0 / m_expDelay; 
+				if ( -40.0 < diffVsExpPercent && diffVsExpPercent <= 80.0 )
 				{
 					// Found a match!
 					tySync		= FIFO_DLY;
@@ -446,7 +453,7 @@ int TSFifo::GetTimeStamp(
 
 /// UpdateFifoInfo:  Get the latest fifoInfo for the specified increment
 /// Must be called w/ m_TSLock mutex locked!
-int TSFifo::UpdateFifoInfo( )
+int TSFifo::UpdateFifoInfo( bool fFirstUpdate )
 {
 	m_fidFifo				 = PULSEID_INVALID;
 	m_fifoTimeStamp.nsec	|= PULSEID_INVALID;
@@ -498,6 +505,13 @@ int TSFifo::UpdateFifoInfo( )
 
 		// Compute the delay in seconds since this m_fifoInfo event was collected
 		m_fifoDelay		= HiResTicksToSeconds( m_tscNow - m_fifoInfo.fifo_tsc );
+		if ( fFirstUpdate )
+		{
+			if( m_fifoDelayMin == 0 || m_fifoDelayMin > m_fifoDelay )
+				m_fifoDelayMin = m_fifoDelay;
+			if( m_fifoDelayMax < m_fifoDelay )
+				m_fifoDelayMax = m_fifoDelay;
+		}
 		m_diffVsExp		= m_fifoDelay - m_expDelay;
 		if ( DEBUG_TS_FIFO >= 7 )
 		{
@@ -519,6 +533,8 @@ void TSFifo::ResetExpectedDelay()
 	}
 	m_diffVsExpMin	= 0.0;
 	m_diffVsExpMax	= 0.0;
+	m_fifoDelayMin	= 0.0;
+	m_fifoDelayMax	= 0.0;
 }
 
 epicsUInt32	TSFifo::Show( int level ) const
@@ -577,6 +593,8 @@ extern "C" long TSFifo_Init(	aSubRecord	*	pSub	)
 //		B:	DiffVsExp,    ms
 //		C:	DiffVsExpMin, ms
 //		D:	DiffVsExpMax, ms
+//		E:	ActualDelayMin, ms
+//		F:	ActualDelayMax, ms
 //
 extern "C" long TSFifo_Process( aSubRecord	*	pSub	)
 {
@@ -718,6 +736,14 @@ extern "C" long TSFifo_Process( aSubRecord	*	pSub	)
 	pDblVal	= static_cast<double *>( pSub->vald );
 	if ( pDblVal != NULL )
 		*pDblVal	= pTSFifo->m_diffVsExpMax * 1000;
+
+	pDblVal	= static_cast<double *>( pSub->vale );
+	if ( pDblVal != NULL )
+		*pDblVal	= pTSFifo->m_fifoDelayMin;
+
+	pDblVal	= static_cast<double *>( pSub->valf );
+	if ( pDblVal != NULL )
+		*pDblVal	= pTSFifo->m_fifoDelayMax;
 
 	return status;
 }

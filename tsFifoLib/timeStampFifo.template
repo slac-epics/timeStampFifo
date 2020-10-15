@@ -55,6 +55,10 @@ record( aSub, "$(DEV):UpdateParams" )
   field( FTVC, "DOUBLE"   )
   field( OUTD, "$(DEV):DiffVsExpMax PP MS" )
   field( FTVD, "DOUBLE"   )
+  field( OUTE, "$(DEV):ActualDelayMin PP MS" )
+  field( FTVE, "DOUBLE"   )
+  field( OUTF, "$(DEV):ActualDelayMax PP MS" )
+  field( FTVF, "DOUBLE"   )
   info(  autosaveFields, "DESC" )
 }
 
@@ -117,27 +121,59 @@ record( ao, "$(DEV):DiffVsExp" )
 }
 
 # Minimum Diff versus expected delay in ms
+# Reset when event code, delay, or exposure is changed.
 record( ao, "$(DEV):DiffVsExpMin" )
 {
+  field( DESC, "MinDiff vs expected delay" )
   field( PREC, "3" )
   field( EGU,  "ms" )
   field( LOW,  "-2" )
   field( LSV,  "MINOR" )
   field( HIGH, "4" )
   field( HSV,  "MINOR" )
-  info(  autosaveFields, "DESC LOLO LOW HIGH HIHI LLSV LSV HSV HHSV PREC" )
+  info(  autosaveFields, "LOLO LOW HIGH HIHI LLSV LSV HSV HHSV PREC" )
 }
 
 # Max Diff versus expected delay in ms
+# Reset when event code, delay, or exposure is changed.
 record( ao, "$(DEV):DiffVsExpMax" )
 {
+  field( DESC, "MaxDiff vs expected delay" )
   field( PREC, "3" )
   field( EGU,  "ms" )
   field( LOW,  "-2" )
   field( LSV,  "MINOR" )
   field( HIGH, "4" )
   field( HSV,  "MINOR" )
-  info(  autosaveFields, "DESC LOLO LOW HIGH HIHI LLSV LSV HSV HHSV PREC" )
+  info(  autosaveFields, "LOLO LOW HIGH HIHI LLSV LSV HSV HHSV PREC" )
+}
+
+# Minimum actual measured delay in sec
+# Reset when event code, delay, or exposure is changed.
+record( ao, "$(DEV):ActualDelayMin" )
+{
+  field( DESC, "Min actual measured delay" )
+  field( PREC, "3" )
+  field( EGU,  "sec" )
+  field( LOW,  "-2" )
+  field( LSV,  "MINOR" )
+  field( HIGH, "4" )
+  field( HSV,  "MINOR" )
+  info(  autosaveFields, "LOLO LOW HIGH HIHI LLSV LSV HSV HHSV PREC" )
+}
+
+# Maximum actual measured delay in sec
+# Reset when event code, delay, or exposure is changed.
+record( ao, "$(DEV):ActualDelayMax" )
+{
+  field( DESC, "Max actual measured delay" )
+  field( PREC, "3" )
+  field( EGU,  "sec" )
+  field( LOW,  "-2" )
+  field( LSV,  "MINOR" )
+  field( HIGH, "4" )
+  field( HSV,  "MINOR" )
+  info(  autosaveFields, "LOLO LOW HIGH HIHI LLSV LSV HSV HHSV PREC" )
 }
 
 record( mbbo, "$(DEV):TsPolicy" )
