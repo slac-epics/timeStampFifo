@@ -329,7 +329,7 @@ int TSFifo::GetTimeStamp(
 	// time for gigE cameras.
 	// Allow 40% early for sloppy estimated delay and 80% late
 	double	diffVsExpPercent = m_diffVsExp * 100.0 / m_expDelay; 
-	if ( -0.40 < diffVsExpPercent && diffVsExpPercent <= 80.0 )
+	if ( -40.0 < diffVsExpPercent && diffVsExpPercent <= 80.0 )
 	{
 		// We're synced!
 		m_synced	= true;
