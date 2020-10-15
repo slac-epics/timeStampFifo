@@ -1,6 +1,9 @@
 #
 # RELEASE_NOTES
 #
+R1.8.1 2020-10-15 Bruce Hill
+	Added new PVs: ActualDelayMin and ActualDelayMax.
+
 R1.8.0 2020-10-14 Bruce Hill
 	Modified sync test to be proportional to expected delay.
 	Update to ADCore/R3.1-2.3.5 asyn/R4.32-1.0.0
