@@ -14,10 +14,10 @@
 # ==========================================================
 # Define the version strings for all needed modules
 # ==========================================================
-ADCORE_MODULE_VERSION			= R3.1-2.3.5
-ASYN_MODULE_VERSION				= R4.32-1.0.0
+ADCORE_MODULE_VERSION			= R3.9-1.0.1
+ASYN_MODULE_VERSION				= R4.39-0.0.1
 DIAG_TIMER_MODULE_VERSION		= R1.9.2
-EVENT2_MODULE_VERSION			= R5.5.2
+EVRCLIENT_MODULE_VERSION		= R1.5.1
 TIMING_API_MODULE_VERSION		= R0.6
 
 # ==========================================================
@@ -26,7 +26,7 @@ TIMING_API_MODULE_VERSION		= R0.6
 ADCORE			= $(EPICS_MODULES)/ADCore/$(ADCORE_MODULE_VERSION)
 ASYN			= $(EPICS_MODULES)/asyn/$(ASYN_MODULE_VERSION)
 DIAG_TIMER		= $(EPICS_MODULES)/diagTimer/$(DIAG_TIMER_MODULE_VERSION)
-EVENT2			= $(EPICS_MODULES)/event2/$(EVENT2_MODULE_VERSION)
+EVRCLIENT		= $(EPICS_MODULES)/evrClient/$(EVRCLIENT_MODULE_VERSION)
 TIMING_API		= $(EPICS_MODULES)/timingApi/$(TIMING_API_MODULE_VERSION)
 
 # Set EPICS_BASE last so it appears last in the DB, DBD, INCLUDE, and LIB search paths
@@ -41,4 +41,4 @@ EPICS_BASE = $(EPICS_SITE_TOP)/base/$(BASE_MODULE_VERSION)
 #ADCORE=$(MY_MODULES)/ADCore-git
 #ASYN=$(MY_MODULES)/asyn-git
 #DIAG_TIMER=$(MY_MODULES)/diagTimer-git
-#EVENT2=$(MY_MODULES)/event2-git
+#EVRCLIENT=$(MY_MODULES)/evrClient-git
