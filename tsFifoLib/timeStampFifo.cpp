@@ -463,7 +463,11 @@ int TSFifo::UpdateFifoInfo( bool fFirstUpdate )
 	if ( m_idxIncr == MAX_TS_QUEUE )
 		m_fidPrior = PULSEID_INVALID;
 
+#if 0
 	int evrTimeStatus = evrTimeGetFifoInfo( &m_fifoInfo, m_eventCode, &m_idx, m_idxIncr );
+#else
+	int evrTimeStatus = timingFifoRead( m_eventCode, m_idxIncr, &m_idx, &m_fifoInfo );
+#endif
 	if ( evrTimeStatus != 0 )
 	{
 		// 5 possible failure modes for evrTimeGetFifoInfo()
@@ -489,7 +493,11 @@ int TSFifo::UpdateFifoInfo( bool fFirstUpdate )
 		{
 			// Reset the FIFO and get the most recent entry
 			m_idxIncr = MAX_TS_QUEUE;
+#if 0
 			evrTimeStatus = evrTimeGetFifoInfo( &m_fifoInfo, m_eventCode, &m_idx, MAX_TS_QUEUE );
+#else
+			evrTimeStatus = timingFifoRead( m_eventCode, MAX_TS_QUEUE, &m_idx, &m_fifoInfo );
+#endif
 			if ( evrTimeStatus != 0 && ( DEBUG_TS_FIFO >= 5 ) )
 			{
 				printf( "UpdateFifoInfo error on reset fetch of fifo info for eventCode %d: evrTimeStatus=%d\n", m_eventCode, evrTimeStatus );
@@ -517,7 +525,7 @@ int TSFifo::UpdateFifoInfo( bool fFirstUpdate )
 		{
 			t_HiResTime	tscNow	= GetHiResTicks();
 			double tscDelay	= HiResTicksToSeconds( tscNow - m_tscNow );
-			printf( "UpdateFifoInfo: EC=%d, incr=%u, fidFifo=%d, m_tscNow=%llu, fifoTsc=%llu, tscDelay=%0.3f\n",
+			printf( "UpdateFifoInfo: EC=%d, incr=%u, fidFifo=%d, m_tscNow=%llu, fifoTsc=%zd, tscDelay=%0.3f\n",
 					m_eventCode, m_idxIncr, m_fidFifo, m_tscNow, m_fifoInfo.fifo_tsc, tscDelay*1000 );
 		}
 	}
