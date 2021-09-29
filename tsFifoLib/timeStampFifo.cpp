@@ -213,7 +213,7 @@ int TSFifo::GetTimeStamp(
 	evrTimeStatus	= evrTimeGet( &curTimeStamp, m_eventCode); 
 
 	// Get the last 360hz Fiducial seen by the driver
-	epicsUInt32	fid360	= evrGetLastFiducial();
+	epicsUInt32	fid360	= timingGetLastFiducial();
 
 	bool	syncedPrior	= m_synced;
 	m_synced	= false;
