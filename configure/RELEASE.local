@@ -14,8 +14,8 @@
 # ==========================================================
 # Define the version strings for all needed modules
 # ==========================================================
-ADCORE_MODULE_VERSION			= R3.9-1.0.1
-ASYN_MODULE_VERSION				= R4.39-0.0.1
+ADCORE_MODULE_VERSION			= R3.9-1.0.2
+ASYN_MODULE_VERSION				= R4.39-1.0.0
 DIAG_TIMER_MODULE_VERSION		= R1.9.2
 EVRCLIENT_MODULE_VERSION		= R1.5.1
 MISCUTILS_MODULE_VERSION		= R2.2.5
