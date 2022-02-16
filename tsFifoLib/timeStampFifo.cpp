@@ -289,7 +289,7 @@ int TSFifo::GetTimeStamp(
 		if ( DEBUG_TS_FIFO >= 5 )
 		{
 			int	fidFifo = PULSEID( m_fifoInfo.fifo_time );
-			printf( "UpdateFifoInfo error fetching fifo info for eventCode %d, incr %d: evrTimeStatus=%d, fidFifo=%d\n",
+			printf( "GetTimeStamp error fetching fifo info for eventCode %d, incr %d: evrTimeStatus=%d, fidFifo=%d\n",
 					m_eventCode, m_idxIncr, evrTimeStatus, fidFifo );
 		}
 		return evrTimeStatus;
