@@ -4,7 +4,6 @@
 #include <map>
 #include "evrTime.h"
 #include "HiResTime.h"
-#include "timingFifoApi.h"
 
 ///
 /// Header file for interface between EPICS and the software used
@@ -122,14 +121,14 @@ public:		//  Public input member variables
 
 private:	//  Private member variables
 	std::string				m_portName;
-	uint64_t				m_idx;
+	unsigned long long		m_idx;
 	unsigned int			m_idxIncr;
 	int						m_fidPrior;
 	int						m_fidDiffPrior;
 	int						m_syncCount;
 	int						m_syncCountMin;
 	t_HiResTime				m_tscNow;
-	EventTimingData			m_fifoInfo;
+	evrFifoInfo				m_fifoInfo;
 	epicsTimeStamp			m_fifoTimeStamp;
 	double					m_fifoDelay;
 	epicsUInt32				m_fidFifo;
