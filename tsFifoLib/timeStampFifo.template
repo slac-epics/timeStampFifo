@@ -27,6 +27,7 @@
 #	D: PV name for expected delay in seconds from event code to acquisition
 #	E: PV name for timestamp policy: 0 = LAST_EC, 1 = SYNCED, 2 = TOD
 #	F: TimeStampFifo FreeRun mode: 0 = Triggered, 1 = FreeRun
+#	G: GigECam timestamping mode: 0 = Normal, 1 = GigECam
 #
 # Outputs
 #	A:	TimeStamp Synced Status: 0 = unlocked, 1 = locked
@@ -46,6 +47,7 @@ record( aSub, "$(DEV):UpdateParams" )
   field( FTD,  "DOUBLE" ) field( INPD, "$(TSDLY_PV=$(DEV):ExpectedDelay) CPP NMS" )
   field( FTE,  "LONG"   ) field( INPE, "$(DEV):TsPolicy CPP NMS" )
   field( FTF,  "LONG"   ) field( INPF, "$(DEV):TsFreeRun CPP NMS" )
+  field( FTG,  "LONG"   ) field( INPG, "$(DEV):GigECamMode CPP NMS" )
 
   field( OUTA, "$(DEV):SyncStatus PP MS" )
   field( FTVA, "LONG"   )
@@ -174,6 +176,16 @@ record( ao, "$(DEV):ActualDelayMax" )
   field( HIGH, "4" )
   field( HSV,  "MINOR" )
   info(  autosaveFields, "LOLO LOW HIGH HIHI LLSV LSV HSV HHSV PREC" )
+}
+
+record( mbbo, "$(DEV):GigECamMode" )
+{
+  field( DESC, "GigECam timestamping mode" )
+  field( DOL,  "$(GIGECAM=0)" )
+  field( ZRVL, "0" ) field( ZRST, "Normal" )
+  field( ONVL, "1" ) field( ONST, "GigECam" )
+  field( PINI, "YES" )
+  info(  autosaveFields, "DESC VAL" )
 }
 
 record( mbbo, "$(DEV):TsPolicy" )

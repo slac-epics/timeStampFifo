@@ -95,6 +95,7 @@ TSFifo::TSFifo(
 		m_tscNow(		0LL				),
 		m_fifoDelay(	0.0				),
 		m_fidFifo(		PULSEID_INVALID	),
+		m_GigECamMode(	false			),
 		m_TSPolicy(		tsPolicy		),
 		m_TSLock(		0				)
 {
@@ -351,6 +352,7 @@ int TSFifo::GetTimeStamp(
 			&&	m_fidDiffPrior != PULSEID_INVALID
 			&&	m_fidDiffPrior == fidDiff
 			&&	m_fidDiffPrior != 0
+			&&	!m_GigECamMode
 			&&	m_syncCount	   >= m_syncCountMin
 			&&	( -40.0 < diffVsExpPercent && diffVsExpPercent <= 80.0 )
 			&&  syncedPrior )
@@ -544,6 +546,7 @@ epicsUInt32	TSFifo::Show( int level ) const
 	printf( "\tGeneration:\t%d\n",	m_genCount );
 	printf( "\tExpDelay:\t%.2fms,\tearliest=%.3fms,\tlatest=%.3fms\n",
 			m_expDelay * 1000, m_diffVsExpMin * 1000, m_diffVsExpMax * 1000 );
+	printf( "\tGigECamMode:\t%s\n",	(	m_GigECamMode ? "Using GigECam timestamping mode" : "Disabled" ) );
 	printf( "\tTS Policy:\t%s\n",	(	m_TSPolicy == TS_LAST_EC
 									?	"LAST_EC"
 									:	(	m_TSPolicy == TS_TOD
@@ -585,8 +588,9 @@ extern "C" long TSFifo_Init(	aSubRecord	*	pSub	)
 //		D:	Expected delay in seconds between the eventCode and the ts query
 //		E:	TimeStamp policy
 //		F:	TimeStamp FreeRun mode
+//		G:	GigE Camera timestamping mode
 // TODO: Add support for 2 event codes, Beam and Camera
-//		G:	Camera trigger Event code for synchronization
+//		H?:	Camera trigger Event code for synchronization
 //
 //	Outputs
 //		A:	TSFifo Sync Status: 0 = unlocked, 1 = locked
@@ -713,6 +717,17 @@ extern "C" long TSFifo_Process( aSubRecord	*	pSub	)
 				pTSFifo->SetTimeStampPolicy( tsPolicy );
 				fTimeStampCriteriaChanged = true;
 			}
+		}
+	}
+
+	pIntVal	= static_cast<epicsInt32 *>( pSub->g );
+	if ( pIntVal != NULL )
+	{
+		bool	GigECamMode = static_cast<bool>(*pIntVal);
+		if ( pTSFifo->GetGigECamMode() != GigECamMode )
+		{
+			pTSFifo->SetGigECamMode( GigECamMode );
+			fTimeStampCriteriaChanged = true;
 		}
 	}
 
