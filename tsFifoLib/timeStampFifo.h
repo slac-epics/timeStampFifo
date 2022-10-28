@@ -58,6 +58,18 @@ public:
 	/// clock timestamp w/ the fiducial pulsid set to invalid
 	int	GetTimeStamp(	epicsTimeStamp		*	pTimeStampRet );
 
+	/// Return the current GigECam mode
+	bool	GetGigECamMode( ) const
+	{
+		return m_GigECamMode;
+	}
+
+	/// Set the GigECam mode
+	void	SetGigECamMode( bool	GigECamMode )
+	{
+		m_GigECamMode = GigECamMode;
+	}
+
 	/// Return the current TimeStamp policy
 	TSPolicy	GetTimeStampPolicy( ) const
 	{
@@ -133,6 +145,7 @@ private:	//  Private member variables
 	epicsTimeStamp			m_fifoTimeStamp;
 	double					m_fifoDelay;
 	epicsUInt32				m_fidFifo;
+	bool					m_GigECamMode;
 	TSPolicy				m_TSPolicy;
 	epicsMutexId			m_TSLock;
 
