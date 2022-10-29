@@ -87,7 +87,7 @@ TSFifo::TSFifo(
 		m_pSubRecord(	pSubRecord		),
 		m_portName(		pPortName		),
 		m_idx(			0LL				),
-		m_idxIncr(		MAX_TS_QUEUE	),
+		m_idxIncr(		TS_INDEX_INIT	),
 		m_fidPrior(		PULSEID_INVALID	),
 		m_fidDiffPrior(	0				),
 		m_syncCount(	0				),
@@ -253,16 +253,16 @@ int TSFifo::GetTimeStamp(
 	}
 
 	bool	fifoReset	= false;
-	if ( m_idxIncr == MAX_TS_QUEUE )
+	if ( m_idxIncr == TS_INDEX_INIT )
 		fifoReset	= true;
 
-	// First time or unsynced, m_idxIncr is MAX_TS_QUEUE, which
+	// First time or unsynced, m_idxIncr is TS_INDEX_INIT, which
 	// just gets the most recent FIFO timestamp for that eventCode
 	evrTimeStatus = UpdateFifoInfo( fFirstUpdate );
 	fFirstUpdate = false;
 	if ( evrTimeStatus == 0 && m_diffVsExp > 60e-3 )
 	{
-		if ( m_idxIncr != MAX_TS_QUEUE )
+		if ( m_idxIncr != TS_INDEX_INIT )
 		{
 			if ( DEBUG_TS_FIFO > 5 )
 				printf( "%s: Reject FIFO, expectedDelay=%.2fms, fifoDelay=%.2fms, diffVsExp=%.2fms, idxIncr=%d\n",
@@ -270,7 +270,7 @@ int TSFifo::GetTimeStamp(
 
 			// This FIFO entry is stale, reset and get the most recent
 			fifoReset	  = true;
-			m_idxIncr     = MAX_TS_QUEUE;
+			m_idxIncr     = TS_INDEX_INIT;
 			evrTimeStatus = UpdateFifoInfo( fFirstUpdate );
 			fFirstUpdate = false;
 		}
@@ -284,7 +284,7 @@ int TSFifo::GetTimeStamp(
 	if ( evrTimeStatus != 0 )
 	{
 		// Nothing available, reset the FIFO increment and give up
-		m_idxIncr     = MAX_TS_QUEUE;
+		m_idxIncr     = TS_INDEX_INIT;
 		epicsMutexUnlock( m_TSLock );
 		if ( DEBUG_TS_FIFO >= 5 )
 		{
@@ -380,7 +380,7 @@ int TSFifo::GetTimeStamp(
 				{
 					// FIFO is empty
 					// Reset FIFO so we get the most recent entry next time
-					m_idxIncr	= MAX_TS_QUEUE;
+					m_idxIncr	= TS_INDEX_INIT;
 					tySync		= FAILED;
 					m_synced	= false;
 					m_syncCount	= 0;
@@ -417,7 +417,7 @@ int TSFifo::GetTimeStamp(
 	if ( !m_synced )
 	{
 		//	Mark unsynced and reset FIFO selector
-		m_idxIncr			  = MAX_TS_QUEUE;
+		m_idxIncr			  = TS_INDEX_INIT;
 		m_fifoTimeStamp.nsec |= PULSEID_INVALID;
 	}
 
@@ -460,7 +460,7 @@ int TSFifo::UpdateFifoInfo( bool fFirstUpdate )
 	m_fifoDelay				 = 0;
 	m_diffVsExp				 = 0;
 
-	if ( m_idxIncr == MAX_TS_QUEUE )
+	if ( m_idxIncr == TS_INDEX_INIT )
 		m_fidPrior = PULSEID_INVALID;
 
 #if 0
@@ -473,7 +473,7 @@ int TSFifo::UpdateFifoInfo( bool fFirstUpdate )
 		// 5 possible failure modes for evrTimeGetFifoInfo()
 		//	1.	Invalid event code
 		//		Timestamp not updated
-		//	2.	m_idxIncr was already MAX_TS_QUEUE and no entries in the FIFO for this event code
+		//	2.	m_idxIncr was already TS_INDEX_INIT and no entries in the FIFO for this event code
 		//		Timestamp not updated
 		//	3.	m_idxIncr was 1 and FIFO is drained
 		//		i.e. we've already requested the most recent entry
@@ -489,14 +489,14 @@ int TSFifo::UpdateFifoInfo( bool fFirstUpdate )
 					m_eventCode, m_idxIncr, evrTimeStatus, fidFifo );
 		}
 
-		if ( m_idxIncr != MAX_TS_QUEUE )
+		if ( m_idxIncr != TS_INDEX_INIT )
 		{
 			// Reset the FIFO and get the most recent entry
-			m_idxIncr = MAX_TS_QUEUE;
+			m_idxIncr = TS_INDEX_INIT;
 #if 0
-			evrTimeStatus = evrTimeGetFifoInfo( &m_fifoInfo, m_eventCode, &m_idx, MAX_TS_QUEUE );
+			evrTimeStatus = evrTimeGetFifoInfo( &m_fifoInfo, m_eventCode, &m_idx, TS_INDEX_INIT );
 #else
-			evrTimeStatus = timingFifoRead( m_eventCode, MAX_TS_QUEUE, &m_idx, &m_fifoInfo );
+			evrTimeStatus = timingFifoRead( m_eventCode, TS_INDEX_INIT, &m_idx, &m_fifoInfo );
 #endif
 			if ( evrTimeStatus != 0 && ( DEBUG_TS_FIFO >= 5 ) )
 			{
