@@ -185,7 +185,7 @@ record( mbbo, "$(DEV):GigECamMode" )
   field( ZRVL, "0" ) field( ZRST, "Normal" )
   field( ONVL, "1" ) field( ONST, "GigECam" )
   field( PINI, "YES" )
-  info(  autosaveFields, "DESC VAL" )
+  info(  autosaveFields, "DESC" )
 }
 
 record( mbbo, "$(DEV):TsPolicy" )
