@@ -210,7 +210,7 @@ int TSFifo::GetTimeStamp(
 	epicsMutexLock( m_TSLock );
 
 	// Fetch the most recent timestamp for this event code
-	evrTimeStatus	= evrTimeGet( &curTimeStamp, m_eventCode); 
+	evrTimeStatus	= timingGetEventTimeStamp( &curTimeStamp, m_eventCode );
 
 	// Get the last 360hz Fiducial seen by the driver
 	epicsUInt32	fid360	= timingGetLastFiducial();
@@ -220,8 +220,8 @@ int TSFifo::GetTimeStamp(
 
 	if ( m_TSPolicy == TS_LAST_EC )
 	{
-		// If evrTimeGet is happy and we were synced before, assume we're still synced
-		if ( evrTimeStatus == 0 && syncedPrior )
+		// If timingGetEventTimeStamp is happy assume we're synced
+		if ( evrTimeStatus == 0 )
 			m_synced = true;
 
 		*pTimeStampRet = curTimeStamp;
