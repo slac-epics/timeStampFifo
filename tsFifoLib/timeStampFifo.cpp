@@ -463,14 +463,10 @@ int TSFifo::UpdateFifoInfo( bool fFirstUpdate )
 	if ( m_idxIncr == TS_INDEX_INIT )
 		m_fidPrior = PULSEID_INVALID;
 
-#if 0
-	int evrTimeStatus = evrTimeGetFifoInfo( &m_fifoInfo, m_eventCode, &m_idx, m_idxIncr );
-#else
 	int evrTimeStatus = timingFifoRead( m_eventCode, m_idxIncr, &m_idx, &m_fifoInfo );
-#endif
 	if ( evrTimeStatus != 0 )
 	{
-		// 5 possible failure modes for evrTimeGetFifoInfo()
+		// 5 possible failure modes for timingFifoRead()
 		//	1.	Invalid event code
 		//		Timestamp not updated
 		//	2.	m_idxIncr was already TS_INDEX_INIT and no entries in the FIFO for this event code
@@ -493,11 +489,7 @@ int TSFifo::UpdateFifoInfo( bool fFirstUpdate )
 		{
 			// Reset the FIFO and get the most recent entry
 			m_idxIncr = TS_INDEX_INIT;
-#if 0
-			evrTimeStatus = evrTimeGetFifoInfo( &m_fifoInfo, m_eventCode, &m_idx, TS_INDEX_INIT );
-#else
 			evrTimeStatus = timingFifoRead( m_eventCode, TS_INDEX_INIT, &m_idx, &m_fifoInfo );
-#endif
 			if ( evrTimeStatus != 0 && ( DEBUG_TS_FIFO >= 5 ) )
 			{
 				printf( "UpdateFifoInfo error on reset fetch of fifo info for eventCode %d: evrTimeStatus=%d\n", m_eventCode, evrTimeStatus );
