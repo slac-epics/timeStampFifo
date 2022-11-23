@@ -16,10 +16,10 @@
 # ==========================================================
 ADCORE_MODULE_VERSION			= R3.9-1.1.0
 ASYN_MODULE_VERSION				= R4.39-1.0.1
-DIAG_TIMER_MODULE_VERSION		= R1.9.2
+DIAG_TIMER_MODULE_VERSION		= R1.9.2.1
 EVRCLIENT_MODULE_VERSION		= R1.5.1
 MISCUTILS_MODULE_VERSION		= R2.2.5
-TIMING_API_MODULE_VERSION		= R0.6
+TIMING_API_MODULE_VERSION		= R0.9
 
 # ==========================================================
 # Define module paths using pattern
@@ -37,7 +37,7 @@ EPICS_BASE = $(EPICS_SITE_TOP)/base/$(BASE_MODULE_VERSION)
 # Check for invalid or undefined EPICS_BASE
 -include $(TOP)/../../EPICS_BASE.check
 
-#MY_MODULES=/reg/neh/home/bhill/wa2/trunk/pcds/epics/modules
+#MY_MODULES=/cds/group/pcds/epics-dev/bhill/modules
 #MY_MODULES=/afs/slac/u/ey/bhill/wa4/trunk/pcds/epics/modules
 #MY_MODULES=/reg/neh/home/bhill/git-wa-neh/modules
 #ADCORE=$(MY_MODULES)/ADCore-git
