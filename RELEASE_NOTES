@@ -1,6 +1,12 @@
 #
 # RELEASE_NOTES
 #
+R2.0.0	2022-11-22 Bruce Hill
+	Update to event2/R5.6.0 and timingApi/R0.9
+	Added a GigECam timestamping mode
+	Fix event code handling for LCLS2.
+	Updating timeStampFifo to use timingApi
+
 R1.8.5	2022-06-01 Bruce Hill
 	Backoff to pre timingApi code as those versions aren't locking.
 	Update to event2/R4.6.0, last event2 that works w/ timeStampFifo.
