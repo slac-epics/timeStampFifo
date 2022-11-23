@@ -665,8 +665,7 @@ extern "C" long TSFifo_Process( aSubRecord	*	pSub	)
 	// Update timestamp FIFO parameters
 	epicsInt32	*	pIntVal	= static_cast<epicsInt32 *>( pSub->b );
 	if (	pIntVal != NULL
-		&&	*pIntVal > 0
-		&&	*pIntVal < MRF_NUM_EVENTS )
+		&&	*pIntVal > 0	)
 	{
 		if( pTSFifo->m_eventCode	!= static_cast<epicsUInt32>(*pIntVal) )
 		{
