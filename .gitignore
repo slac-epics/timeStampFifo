@@ -6,3 +6,4 @@ include
 RELEASE_SITE
 O.*
 *.log
+tags
