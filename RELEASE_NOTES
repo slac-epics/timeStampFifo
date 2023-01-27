@@ -1,6 +1,9 @@
 #
 # RELEASE_NOTES
 #
+R2.0.1 2023-01-27 Bruce Hill
+	Create a version for andorCam w/ ADCore/R3.1-2.3.5 and asyn/R4.32-1.0.0
+
 R2.0.0	2022-11-22 Bruce Hill
 	Update to event2/R5.6.0 and timingApi/R0.9
 	Added a GigECam timestamping mode
