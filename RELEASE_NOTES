@@ -1,6 +1,9 @@
 #
 # RELEASE_NOTES
 #
+R2.0.2 2023-02-21 Bruce Hill
+	Update to ADCore/R3.10-1.1.0
+
 R2.0.1 2023-01-27 Bruce Hill
 	Create a version for andorCam w/ ADCore/R3.1-2.3.5 and asyn/R4.32-1.0.0
 
