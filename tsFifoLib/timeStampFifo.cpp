@@ -18,8 +18,7 @@
 #include <recGbl.h>
 
 #include "asynDriver.h"
-#include "evrTime.h"
-#include "mrfCommon.h"
+#include "timingFifoApi.h"
 #include "timeStampFifo.h"
 #include "HiResTime.h"
 
@@ -30,12 +29,46 @@ int					DEBUG_TS_FIFO	= 1;
 #ifndef NULL
 #define NULL    0
 #endif
+#define	TIMESTAMP_NSEC_FID_MASK	0x1FFFF
 
 using namespace		std;
 
 /// Static TSFifo map by port name
 map<string, TSFifo *>   TSFifo::ms_TSFifoMap;
 
+///	timingGetFiducialForTimeStamp returns the 64 bit fiducial that corresponds to the specified timestamp.
+///	If the timing module cannot determine the correct fiducial, it returns TIMING_PULSEID_INVALID.
+///	TODO: For LCLS2 mode we should combine sec and nsec to get the 64 bit fiducial.
+//  Caveat: We're only using this function for diag msgs which will be mostly useful for LCLS1 timing,
+//  so it's not an urgent TODO.
+extern epicsUInt64 timingGetFiducialForTimeStamp( epicsTimeStamp timeStamp )
+{       
+	epicsUInt32     fiducial = timeStamp.nsec & TIMESTAMP_NSEC_FID_MASK;
+	if ( fiducial == TIMESTAMP_NSEC_FID_MASK )
+		return TIMING_PULSEID_INVALID;
+	else
+		return (TimingPulseId) fiducial;
+}
+
+#define LCLS1_FID_MAX        0x1ffe0
+#define LCLS1_FID_ROLL_LO    0x00200
+#define LCLS1_FID_ROLL_HI    (LCLS1_FID_MAX-LCLS1_FID_ROLL_LO)
+#define LCLS1_FID_ROLL(a,b)  ((b) < LCLS1_FID_ROLL_LO && (a) > LCLS1_FID_ROLL_HI)
+#define LCLS1_FID_GT(a,b)    (LCLS1_FID_ROLL(b, a) || ((a) > (b) && !LCLS1_FID_ROLL(a, b)))
+#define LCLS1_FID_DIFF(a,b)  ((LCLS1_FID_ROLL(b, a) ? LCLS1_FID_MAX : 0) + (int)(a) - (int)(b) - (LCLS1_FID_ROLL(a, b) ? LCLS1_FID_MAX : 0))
+
+///	fiducialDiff returns the 64 bit delta from fid1 - fid2
+extern epicsInt64 fiducialDiff( TimingPulseId fid1, TimingPulseId fid2 )
+{
+	epicsInt64 	fidDiff;
+#ifdef HAVE_LCLS2MODE
+	if ( m_Lcls2Mode )
+		fidDiff = fid1 - fid2;
+	else
+#endif // HAVE_LCLS2MODE
+		fidDiff = LCLS1_FID_DIFF(fid1, fid2);
+	return fidDiff;
+}
 
 // TimeStampFifo is the function that gets registered
 // with asynDriver as the timeStampSource
@@ -59,9 +92,9 @@ static void TimeStampFifo(
 	status = pTSFifo->GetTimeStamp( pTimeStamp );
 	if ( status != asynSuccess )
 	{
-		// Defaults to best available timestamp w/ PULSEID_INVALID on error
+		// Defaults to best available timestamp w/ TIMING_PULSEID_INVALID on error
 		epicsTimeGetCurrent( pTimeStamp );
-		pTimeStamp->nsec |= PULSEID_INVALID;
+		pTimeStamp->nsec |= TIMESTAMP_NSEC_FID_MASK;
 		if ( (DEBUG_TS_FIFO & 8) && (DEBUG_TS_FIFO & 2) )
 			printf( "Error %s: GetTimeStamp error %d for port %s\n",
 					functionName, status, pTSFifo->GetPortName() );
@@ -71,6 +104,7 @@ static void TimeStampFifo(
 
 
 /// Constructor for TSFifo
+///	TODO: Add m_Lcls2Mode argument to constructor.  Or, grab it via aSubRecord function TSFifo_Process.
 TSFifo::TSFifo(
 	const char	*	pPortName,
 	aSubRecord	*	pSubRecord,
@@ -88,13 +122,13 @@ TSFifo::TSFifo(
 		m_portName(		pPortName		),
 		m_idx(			0LL				),
 		m_idxIncr(		TS_INDEX_INIT	),
-		m_fidPrior(		PULSEID_INVALID	),
+		m_fidPrior(		TIMING_PULSEID_INVALID	),
 		m_fidDiffPrior(	0				),
 		m_syncCount(	0				),
 		m_syncCountMin(	1				),
 		m_tscNow(		0LL				),
 		m_fifoDelay(	0.0				),
-		m_fidFifo(		PULSEID_INVALID	),
+		m_fidFifo(		TIMING_PULSEID_INVALID	),
 		m_GigECamMode(	false			),
 		m_TSPolicy(		tsPolicy		),
 		m_TSLock(		0				)
@@ -182,7 +216,7 @@ const char * SyncTypeToStr( SyncType tySync )
 }
 
 /// GetTimeStamp:  Get the timestamp for the configured event code.
-/// A pulse id is encoded into the least significant 17 bits of the nsec timestamp
+/// In LCLS1 mode, a pulse id is encoded into the least significant 17 bits of the nsec timestamp
 ///	field, as per SLAC convention for EVR timestamps.
 /// The pulse id is set to 0x1FFFF if the timeStampFifo status is unsynced.
 ///	Behavior depends on the value of m_TSPolicy:
@@ -231,9 +265,9 @@ int TSFifo::GetTimeStamp(
 		epicsMutexUnlock( m_TSLock );
 
 		if ( DEBUG_TS_FIFO >= 5 )
-			printf( "%s: LAST_EC, expectedDelay=%.2fms, fifoDelay=%.2fms, fid 0x%X\n",
+			printf( "%s: LAST_EC, expectedDelay=%.2fms, fifoDelay=%.2fms, fid 0x%llX\n",
 					functionName,
-					m_expDelay * 1000, m_fifoDelay * 1000, PULSEID(curTimeStamp) );
+					m_expDelay * 1000, m_fifoDelay * 1000, timingGetFiducialForTimeStamp(curTimeStamp) );
 		return evrTimeStatus;
 	}
 
@@ -289,9 +323,9 @@ int TSFifo::GetTimeStamp(
 		epicsMutexUnlock( m_TSLock );
 		if ( DEBUG_TS_FIFO >= 5 )
 		{
-			int	fidFifo = PULSEID( m_fifoInfo.fifo_time );
-			printf( "GetTimeStamp error fetching fifo info for eventCode %d, incr %d: evrTimeStatus=%d, fidFifo=%d\n",
-					m_eventCode, m_idxIncr, evrTimeStatus, fidFifo );
+			printf( "GetTimeStamp error fetching fifo info for eventCode %d, incr %d: evrTimeStatus=%d, fidFifo=%llu\n",
+					m_eventCode, m_idxIncr, evrTimeStatus,
+					timingGetFiducialForTimeStamp( m_fifoInfo.fifo_time ) );
 		}
 		return evrTimeStatus;
 	}
@@ -300,24 +334,29 @@ int TSFifo::GetTimeStamp(
 	// Set m_idxIncr to advance one next time
 	m_idxIncr		= 1;
 
-	// Use the expected delay to compute the expected fiducial and make it our target
-	double	fidTgt		= fid360 - round(m_delay);
-	if( fidTgt < 0 )
-		fidTgt	+= FID_MAX;
-
 	// Compare the fiducial for this FIFO timestamp with the target
 	// Compute the target error and delta vs the prior fiducial
-	int		fidDiff	 = PULSEID_INVALID;
-	if ( m_fidFifo != PULSEID_INVALID )
+	// TODO: This is the only place where LCLS2 mode won't work
+	// The concept behind fidDiff relies on the regular increment
+	// by 1 of the LCLS1 fiducial at 360hz.
+	// fidDiff is only used if the expected delay is outside the
+	// tolerance.  In which case the code would look at fidDiff
+	// to see if it was the expected value.
+	// i.e 3 for 120hz, 6 for 60hz, etc
+	// That test is no longer used for gigE cameras, even in LCLS1
+	// mode as it doesn't handle missing frames well.
+	// It's not clear that it ever hits even in LCLS1 mode.
+	int64_t		fidDiff	 = TIMING_PULSEID_INVALID;
+	if ( m_fidFifo != TIMING_PULSEID_INVALID )
 	{
-		if ( m_fidPrior != PULSEID_INVALID )
-			fidDiff	= FID_DIFF( m_fidFifo, m_fidPrior );
+		if ( m_fidPrior != TIMING_PULSEID_INVALID )
+			fidDiff	= fiducialDiff( m_fidFifo, m_fidPrior );
 	}
 
 	if ( DEBUG_TS_FIFO >= 5 )
 	{
-		if ( m_fidFifo == PULSEID_INVALID )
-			printf( "%s: %s Error FIFO, expectedDelay=%.2fms, fifoDelay=%.2fms, fidFifo 0x%X\n",
+		if ( m_fidFifo == TIMING_PULSEID_INVALID )
+			printf( "%s: %s Error FIFO, expectedDelay=%.2fms, fifoDelay=%.2fms, fidFifo 0x%lX\n",
 					functionName, ( fifoReset ? "Reset" : "Next " ),
 					m_expDelay * 1000, m_fifoDelay * 1000, m_fidFifo );
 		else
@@ -348,8 +387,8 @@ int TSFifo::GetTimeStamp(
 	else
 	{	// See if we have a consistent fidDiff w/ prior samples
 		double	diffVsExpPercent = m_diffVsExp * 100.0 / m_expDelay; 
-		if (	m_fidPrior     != PULSEID_INVALID
-			&&	m_fidDiffPrior != PULSEID_INVALID
+		if (	m_fidPrior     != TIMING_PULSEID_INVALID
+			&&	m_fidDiffPrior != (int64_t) TIMING_PULSEID_INVALID
 			&&	m_fidDiffPrior == fidDiff
 			&&	m_fidDiffPrior != 0
 			&&	!m_GigECamMode
@@ -420,7 +459,7 @@ int TSFifo::GetTimeStamp(
 	{
 		//	Mark unsynced and reset FIFO selector
 		m_idxIncr			  = TS_INDEX_INIT;
-		m_fifoTimeStamp.nsec |= PULSEID_INVALID;
+		m_fifoTimeStamp.nsec |= TIMESTAMP_NSEC_FID_MASK;
 	}
 
 	if (	( DEBUG_TS_FIFO & 4 )
@@ -428,11 +467,11 @@ int TSFifo::GetTimeStamp(
 	{
 		char		acBuff[40];
 		epicsTimeToStrftime( acBuff, 40, "%H:%M:%S.%04f", &m_fifoTimeStamp );
-		printf( "%s: %-8s, %-8s, ts %s, fid 0x%X, fidFifo 0x%X, fid360 0x%X, fidDiff %d, fidDiffPrior %d\n",
+		printf( "%s: %-8s, %-8s, ts %s, fid 0x%llX, fidFifo 0x%lX, fid360 0x%X, fidDiff %ld, fidDiffPrior %ld\n",
 				functionName,
 				( m_synced ? "Synced" : "Unsynced" ),
 				SyncTypeToStr( tySync ),
-				acBuff, PULSEID(m_fifoTimeStamp), m_fidFifo, fid360,
+				acBuff, timingGetFiducialForTimeStamp(m_fifoTimeStamp), m_fidFifo, fid360,
 				fidDiff, m_fidDiffPrior	);
 	}
 	epicsMutexUnlock( m_TSLock );
@@ -447,7 +486,7 @@ int TSFifo::GetTimeStamp(
 		return -1;
 
 	// If we have a pulse ID's timestamp, return it
-	if ( PULSEID(m_fifoTimeStamp) != PULSEID_INVALID )
+	if ( timingGetFiducialForTimeStamp(m_fifoTimeStamp) != TIMING_PULSEID_INVALID )
 		*pTimeStampRet = m_fifoTimeStamp;
 	return evrTimeStatus;
 }
@@ -457,13 +496,13 @@ int TSFifo::GetTimeStamp(
 /// Must be called w/ m_TSLock mutex locked!
 int TSFifo::UpdateFifoInfo( bool fFirstUpdate )
 {
-	m_fidFifo				 = PULSEID_INVALID;
-	m_fifoTimeStamp.nsec	|= PULSEID_INVALID;
+	m_fidFifo				 = TIMING_PULSEID_INVALID;
+	m_fifoTimeStamp.nsec	|= TIMESTAMP_NSEC_FID_MASK;
 	m_fifoDelay				 = 0;
 	m_diffVsExp				 = 0;
 
 	if ( m_idxIncr == TS_INDEX_INIT )
-		m_fidPrior = PULSEID_INVALID;
+		m_fidPrior = TIMING_PULSEID_INVALID;
 
 	int evrTimeStatus = timingFifoRead( m_eventCode, m_idxIncr, &m_idx, &m_fifoInfo );
 	if ( evrTimeStatus != 0 )
@@ -482,9 +521,9 @@ int TSFifo::UpdateFifoInfo( bool fFirstUpdate )
 		//		Probably because evrTimeEventProcessing() thinks we aren't synced
 		if ( DEBUG_TS_FIFO >= 5 )
 		{
-			int	fidFifo = PULSEID( m_fifoInfo.fifo_time );
-			printf( "UpdateFifoInfo error fetching fifo info for eventCode %d, incr %u: evrTimeStatus=%d, fidFifo=%d\n",
-					m_eventCode, m_idxIncr, evrTimeStatus, fidFifo );
+			printf( "UpdateFifoInfo error fetching fifo info for eventCode %d, incr %u: evrTimeStatus=%d, fidFifo=%lld\n",
+					m_eventCode, m_idxIncr, evrTimeStatus,
+					timingGetFiducialForTimeStamp( m_fifoInfo.fifo_time ) );
 		}
 
 		if ( m_idxIncr != TS_INDEX_INIT )
@@ -503,7 +542,7 @@ int TSFifo::UpdateFifoInfo( bool fFirstUpdate )
 	{
 		// Good timestamp from FIFO
 		m_fifoTimeStamp	= m_fifoInfo.fifo_time;
-		m_fidFifo		= PULSEID( m_fifoTimeStamp );
+		m_fidFifo		= timingGetFiducialForTimeStamp( m_fifoTimeStamp );
 
 		// Compute the delay in seconds since this m_fifoInfo event was collected
 		m_fifoDelay		= HiResTicksToSeconds( m_tscNow - m_fifoInfo.fifo_tsc );
@@ -519,7 +558,7 @@ int TSFifo::UpdateFifoInfo( bool fFirstUpdate )
 		{
 			t_HiResTime	tscNow	= GetHiResTicks();
 			double tscDelay	= HiResTicksToSeconds( tscNow - m_tscNow );
-			printf( "UpdateFifoInfo: EC=%d, incr=%u, fidFifo=%d, m_tscNow=%llu, fifoTsc=%zd, tscDelay=%0.3f\n",
+			printf( "UpdateFifoInfo: EC=%d, incr=%u, fidFifo=%lu, m_tscNow=%llu, fifoTsc=%zd, tscDelay=%0.3f\n",
 					m_eventCode, m_idxIncr, m_fidFifo, m_tscNow, m_fifoInfo.fifo_tsc, tscDelay*1000 );
 		}
 	}
@@ -589,8 +628,10 @@ extern "C" long TSFifo_Init(	aSubRecord	*	pSub	)
 //		E:	TimeStamp policy
 //		F:	TimeStamp FreeRun mode
 //		G:	GigE Camera timestamping mode
+// TODO: Add Lcls2Mode
+// 		H?:	LCLS2 Timing mode
 // TODO: Add support for 2 event codes, Beam and Camera
-//		H?:	Camera trigger Event code for synchronization
+//		I?:	Camera trigger Event code for synchronization
 //
 //	Outputs
 //		A:	TSFifo Sync Status: 0 = unlocked, 1 = locked
