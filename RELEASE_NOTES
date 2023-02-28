@@ -1,6 +1,9 @@
 #
 # RELEASE_NOTES
 #
+R2.1.1 2023-02-27 Bruce Hill
+	Build a version with ADCore/R3.9-1.1.0
+
 R2.1.0 2023-02-23 Bruce Hill
 	Removed all need for event2 header files and macros.  Only timingFifoApi.h is needed.
 
