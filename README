@@ -1,0 +1,36 @@
+
+The timeStampFifo module handles registering the asyn timeStampSource automatically
+in an aSub record that takes the port name PV as one of it's arguments.
+
+To use timeStampFifo, set TIMESTAMPFIFO in your configure/RELEASE* file(s) to add it to your build.
+
+In your *App/Db/Makefile, add a line like this:
+DB_INSTALLS += $(TIMESTAMPFIFO)/db/timeStampFifo.template
+
+In your *App/src/Makefile, add lines like these:
+$(PROD_NAME)_DBD += timeStampFifo.dbd
+$(PROD_NAME)_LIBS += timeStampFifo
+
+In your st.cmd files, load the timeStampFifo.template records like this:
+# Load timestamp plugin
+dbLoadRecords("db/timeStampFifo.template",  "DEV=$(CAM_PV):TSS,PORT_PV=$(CAM_PV):PortName_RBV,EC_PV=$(CAM_PV):BeamEventCode_RBV,DLY_PV=$(CAM_PV):TrigToTS_Calc NMS CPP" )
+
+where
+DEV		= Prefix for the timeStampFifo PVs
+PORT_PV	= PV name where the asyn port name can be fetched
+EC_PV	= PV name where the event code can be fetched.  For LCLS2 the event code is the channel event, i.e. 1000 + trigger channel number
+DLY_PV	= PV name where the estimated trigger to timestamp delay can be fetched
+
+In the example above the DLY_PV is $(CAM_PV):TrigToTS_Calc which is already
+provided in the ADAndor, ADEdtPdv, ADProsilica, ADVimba, and aravisGigE modules.
+
+The timeStampFifo module has a debug variable that can help diagnose problems, DEBUG_TS_FIFO.
+Default is 1 which just shows some startup msgs.
+Set to 2 for some additional diags, and higher numbers for more diags.
+
+If I have a new camera that I'm just setting up for timeStampFifo
+I'll set the areaDetector $(CAM_PV):ImageMode to Multiple,
+$(CAM_PV):NumImages to 5, and DEBUG_TS_FIFO to 15.
+
+That produces lots of diagnostics for 5 images and stops so you can look at what happened.
+
