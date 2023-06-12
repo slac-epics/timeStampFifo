@@ -385,63 +385,38 @@ int TSFifo::GetTimeStamp(
 			m_diffVsExpMin = m_diffVsExp;
 	}
 	else
-	{	// See if we have a consistent fidDiff w/ prior samples
-		double	diffVsExpPercent = m_diffVsExp * 100.0 / m_expDelay; 
-		if (	m_fidPrior     != TIMING_PULSEID_INVALID
-			&&	m_fidDiffPrior != (int64_t) TIMING_PULSEID_INVALID
-			&&	m_fidDiffPrior == fidDiff
-			&&	m_fidDiffPrior != 0
-			&&	!m_GigECamMode
-			&&	m_syncCount	   >= m_syncCountMin
-			&&	( -40.0 < diffVsExpPercent && diffVsExpPercent <= 80.0 )
-			&&  syncedPrior )
+	{
+		// Check earlier entries in the FIFO
+	        while ( m_diffVsExp <= (2*m_expDelay) && m_fifoDelay > -1e-3 )
 		{
-			tySync		= FID_DIFF;
-			if( m_syncCount > m_syncCountMin )
-				m_syncCount = m_syncCountMin;
-			else
-				m_syncCount = 0;
-			m_synced	= true;
-
-			if( m_diffVsExpMax < m_diffVsExp )
-				m_diffVsExpMax = m_diffVsExp;
-			if( m_diffVsExpMin > m_diffVsExp )
-				m_diffVsExpMin = m_diffVsExp;
-		}
-		else
-		{
-			// Check earlier entries in the FIFO
-			while ( m_diffVsExp <= (2*m_expDelay) && m_fifoDelay > -1e-3 )
+			nStepBacks++;
+			m_idxIncr     = -1;
+			evrTimeStatus = UpdateFifoInfo( fFirstUpdate );
+			fFirstUpdate = false;
+			if ( evrTimeStatus != 0 )
 			{
-				nStepBacks++;
-				m_idxIncr     = -1;
-				evrTimeStatus = UpdateFifoInfo( fFirstUpdate );
-				fFirstUpdate = false;
-				if ( evrTimeStatus != 0 )
-				{
-					// FIFO is empty
-					// Reset FIFO so we get the most recent entry next time
-					m_idxIncr	= TS_INDEX_INIT;
-					tySync		= FAILED;
-					m_synced	= false;
-					m_syncCount	= 0;
-					break;
-				}
+				// FIFO is empty
+				// Reset FIFO so we get the most recent entry next time
+				m_idxIncr	= TS_INDEX_INIT;
+				tySync		= FAILED;
+				m_synced	= false;
+				m_syncCount	= 0;
+				break;
+			}
 
-				if ( DEBUG_TS_FIFO >= 5 )
-					printf( "%s FIFO incr %2d: expectedDelay=%.3fms, fifoDelay=%.3fms, diffVsExp=%.3f\n",
-							functionName, m_idxIncr, m_expDelay*1000, m_fifoDelay*1000, m_diffVsExp*1000 );
+			if ( DEBUG_TS_FIFO >= 5 )
+				printf( "%s FIFO incr %2d: expectedDelay=%.3fms, fifoDelay=%.3fms, diffVsExp=%.3f\n",
+				       functionName, m_idxIncr, m_expDelay*1000, m_fifoDelay*1000, m_diffVsExp*1000 );
 
-				double	diffVsExpPercent = m_diffVsExp * 100.0 / m_expDelay; 
-				if ( -40.0 < diffVsExpPercent && diffVsExpPercent <= 80.0 )
-				{
-					// Found a match!
-					tySync		= FIFO_DLY;
-					m_idxIncr	= 1;
-					m_syncCount	= 0;
-					m_synced	= true;	// not yet?
-					break;
-				}
+			double	diffVsExpPercent = m_diffVsExp * 100.0 / m_expDelay; 
+			if ( -40.0 < diffVsExpPercent && diffVsExpPercent <= 80.0 )
+			{
+				// Found a match!
+				tySync		= FIFO_DLY;
+				m_idxIncr	= 1;
+				m_syncCount	= 0;
+				m_synced	= true;	// not yet?
+				break;
 			}
 		}
 	}
