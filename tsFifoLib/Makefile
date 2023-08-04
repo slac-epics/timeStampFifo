@@ -5,7 +5,7 @@ include $(TOP)/configure/CONFIG
 
 LIBRARY_IOC += timeStampFifo
 
-LIB_SRCS += timeStampFifo.cpp
+LIB_SRCS += timeStampFifo.cpp camera_ts.cpp
 
 DBD += timeStampFifo.dbd
 
