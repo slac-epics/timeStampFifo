@@ -49,7 +49,7 @@ using namespace		std;
 map<string, TSFifo *>   TSFifo::ms_TSFifoMap;
 
 extern "C" {
-static const char *mcbFormattedTime()
+static const char *ts_time_str()
 {
     epicsTimeStamp now;
     static char nowText[40];
@@ -302,7 +302,7 @@ int TSFifo::GetTimeStamp(
 		m_idxIncr = TS_INDEX_INIT;
 		m_intreq_in = true;
 		if ( DEBUG_TS_FIFO >= 1 )
-		    printf( "%s%s: INTERNAL, initializing!\n", mcbFormattedTime(), functionName);
+		    printf( "%s%s: INTERNAL, initializing!\n", ts_time_str(), functionName);
 		/* For now, fall through and default to LAST_EC. */
 	    } else if (camera_ts == -1.0 || 
 		       camera_ts < m_last_camera_ts ||
@@ -310,7 +310,7 @@ int TSFifo::GetTimeStamp(
 		/* If the camera timestamps fail, go unsynched. */
 		if ( DEBUG_TS_FIFO >= 1 )
 		    printf( "%s%s: INTERNAL, camera TS failed, not synchronized! (ts=%g)\n",
-			    mcbFormattedTime(), functionName, camera_ts);
+			    ts_time_str(), functionName, camera_ts);
 		m_delta = 0.0;
 		m_synced = false;
 		m_idxIncr = TS_INDEX_INIT;
@@ -337,7 +337,7 @@ int TSFifo::GetTimeStamp(
 			       (double)m_fifoInfo.fifo_time.nsec / 1.e9) - camera_ts;
 		    if ( DEBUG_TS_FIFO >= 1 )
 			printf( "%s%s: INTERNAL, set delta to %.19g, idx to %lu\n",
-				mcbFormattedTime(), functionName, m_delta, m_last_idx);
+				ts_time_str(), functionName, m_delta, m_last_idx);
 		    m_last_ec = m_eventCode;
 		    m_synced = true;
 		    m_intreq = TS_NONE;
@@ -360,7 +360,7 @@ int TSFifo::GetTimeStamp(
 					&m_last_idx, &m_fifoInfo )) {
 			if ( DEBUG_TS_FIFO >= 1 )
 			    printf( "%s%s: INTERNAL, tweak %s failed to read timestamp fifo!\n",
-				    mcbFormattedTime(), functionName,
+				    ts_time_str(), functionName,
 				    (m_intreq == TS_TWEAK_FWD) ? "forward" : "backward");
 			m_delta = 0.0; /* No TS?!? */
 			break; 
@@ -369,7 +369,7 @@ int TSFifo::GetTimeStamp(
 			       (double)m_fifoInfo.fifo_time.nsec / 1.e9) - m_last_camera_ts;
 		    if ( DEBUG_TS_FIFO >= 1 )
 			printf( "%s%s: INTERNAL, tweak delta %s to %.19g, idx to %lu\n",
-				mcbFormattedTime(), functionName,
+				ts_time_str(), functionName,
 				(m_intreq == TS_TWEAK_FWD) ? "forward" : "backward",
 				m_delta, m_last_idx);
 		    m_intreq = TS_NONE;
@@ -381,7 +381,7 @@ int TSFifo::GetTimeStamp(
 		    new_ts = m_delta + camera_ts;
 		    if ( DEBUG_TS_FIFO >= 5 )
 			printf( "%s%s: INTERNAL, %g --> %.19g\n", 
-				mcbFormattedTime(), functionName, camera_ts, new_ts);
+				ts_time_str(), functionName, camera_ts, new_ts);
 		    /*
 		     * If the event code has changed, we need to start over at the end.
 		     * If it hasn't, just go forward one.
@@ -399,13 +399,13 @@ int TSFifo::GetTimeStamp(
 			if (timingFifoRead( m_eventCode, dir, &idx_new, &m_fifoInfo )) {
 			    if ( DEBUG_TS_FIFO >= 1 )
 				printf( "%s%s: INTERNAL, timingFifoRead failed!\n",
-					mcbFormattedTime(), functionName);
+					ts_time_str(), functionName);
 			    m_synced = false;
 			    break;
 			}
 			if ( DEBUG_TS_FIFO >= 5 )
 				printf( "%s%s: INTERNAL, timingFifoRead %d.%09d (fid=0x%x, idx=%lu)!\n",
-					mcbFormattedTime(), functionName,
+					ts_time_str(), functionName,
 					m_fifoInfo.fifo_time.secPastEpoch,
 					m_fifoInfo.fifo_time.nsec,
 					m_fifoInfo.fifo_time.nsec & 0x1ffff,
@@ -429,7 +429,7 @@ int TSFifo::GetTimeStamp(
 			    // Got it!
 			    if ( DEBUG_TS_FIFO >= 5 )
 				printf( "%s%s: INTERNAL, found TS after increment %d, diff = %g\n",
-					mcbFormattedTime(), functionName, cnt, new_diff);
+					ts_time_str(), functionName, cnt, new_diff);
 			    m_synced = true;
 			    m_diffVsInt = new_diff;
 			    m_diffVsIntAvg = 0.8 * m_diffVsIntAvg + 0.2 * new_diff;
@@ -441,14 +441,14 @@ int TSFifo::GetTimeStamp(
 			    if (m_diffVsIntAvg > MAX_INT_DELTA_MS/2.) {
 				if ( DEBUG_TS_FIFO >= 2 )
 				    printf( "%s%s: INTERNAL, increasing delta by %gms\n",
-					    mcbFormattedTime(), functionName, MAX_INT_DELTA_MS/2.);
+					    ts_time_str(), functionName, MAX_INT_DELTA_MS/2.);
 				m_delta += MAX_INT_DELTA_MS/2000.;
 				m_diffVsInt -= 1;
 				m_diffVsIntAvg -= 1;
 			    } else if (m_diffVsIntAvg < -MAX_INT_DELTA_MS/2.) {
 				if ( DEBUG_TS_FIFO >= 2 )
 				    printf( "%s%s: INTERNAL, decreasing delta by %gms\n",
-					    mcbFormattedTime(), functionName, MAX_INT_DELTA_MS/2.);
+					    ts_time_str(), functionName, MAX_INT_DELTA_MS/2.);
 				m_delta -= MAX_INT_DELTA_MS/2000.;
 				m_diffVsInt += 1;
 				m_diffVsIntAvg += 1;
@@ -470,7 +470,7 @@ int TSFifo::GetTimeStamp(
 			     */
 			    if ( DEBUG_TS_FIFO >= 5 )
 				printf( "%s%s: INTERNAL, crossed zero, giving up!\n",
-					mcbFormattedTime(), functionName);
+					ts_time_str(), functionName);
 			    m_synced = false;
 			    break;
 			}
@@ -478,7 +478,7 @@ int TSFifo::GetTimeStamp(
 			last_diff = new_diff;
 			if (DEBUG_TS_FIFO >= 5)
 			    printf("%s%s: INTERNAL, diff = %g, cnt = %d, moving on.\n",
-				   mcbFormattedTime(), functionName, new_diff, cnt);
+				   ts_time_str(), functionName, new_diff, cnt);
 		    }
 		    /*
 		     * We couldn't match the timestamp.  Turn off internal timestamping
@@ -486,10 +486,10 @@ int TSFifo::GetTimeStamp(
 		     */
 		    if ( DEBUG_TS_FIFO >= 1 )
 			printf( "%s%s: INTERNAL, no ts found, unsynchronizing)!\n", 
-				mcbFormattedTime(), functionName );
+				ts_time_str(), functionName );
 		    if ( DEBUG_TS_FIFO >= 2 ) {
 			int i;
-			const char *now = mcbFormattedTime();
+			const char *now = ts_time_str();
 			printf("%s%s: INTERNAL, last match, idx=%lu, camera_ts=%g\n",
 			       now, functionName, m_last_idx, m_last_camera_ts);
 			printf( "%s%s: INTERNAL, %g --> %.19g\n", 
@@ -536,7 +536,7 @@ int TSFifo::GetTimeStamp(
 
 		if ( DEBUG_TS_FIFO >= 5 )
 			printf( "%s%s: LAST_EC, expectedDelay=%.2fms, fifoDelay=%.2fms, fid 0x%llX\n",
-				mcbFormattedTime(), functionName,
+				ts_time_str(), functionName,
 					m_expDelay * 1000, m_fifoDelay * 1000, timingGetFiducialForTimeStamp(curTimeStamp) );
 		return evrTimeStatus;
 	}
@@ -552,7 +552,7 @@ int TSFifo::GetTimeStamp(
 		{
 			char		acBuff[40];
 			epicsTimeToStrftime( acBuff, 40, "%H:%M:%S.%04f", &todTimeStamp );
-			printf( "%s%s: TOD, %s\n", mcbFormattedTime(), functionName, acBuff );
+			printf( "%s%s: TOD, %s\n", ts_time_str(), functionName, acBuff );
 		}
 		return 0;
 	}
@@ -571,7 +571,7 @@ int TSFifo::GetTimeStamp(
 		{
 			if ( DEBUG_TS_FIFO > 5 )
 				printf( "%s%s: Reject FIFO, expectedDelay=%.2fms, fifoDelay=%.2fms, diffVsExp=%.2fms, idxIncr=%d\n",
-					mcbFormattedTime(), functionName, m_expDelay * 1000,
+					ts_time_str(), functionName, m_expDelay * 1000,
 					m_fifoDelay * 1000, m_diffVsExp * 1000, m_idxIncr );
 
 			// This FIFO entry is stale, reset and get the most recent
@@ -584,7 +584,7 @@ int TSFifo::GetTimeStamp(
 		{
 			if ( DEBUG_TS_FIFO >= 5 )
 				printf( "%s%s: Stale  FIFO, expectedDelay=%.2fms, fifoDelay=%.2fms, diffVsExp=%.2fms\n",
-					mcbFormattedTime(), functionName, m_expDelay * 1000, 
+					ts_time_str(), functionName, m_expDelay * 1000, 
 					m_fifoDelay * 1000, m_diffVsExp * 1000 );
 		}
 	}
@@ -596,7 +596,7 @@ int TSFifo::GetTimeStamp(
 		if ( DEBUG_TS_FIFO >= 5 )
 		{
 			printf( "%s GetTimeStamp error fetching fifo info for eventCode %d, incr %d: evrTimeStatus=%d, fidFifo=%llu\n",
-				mcbFormattedTime(), m_eventCode, m_idxIncr, evrTimeStatus,
+				ts_time_str(), m_eventCode, m_idxIncr, evrTimeStatus,
 				timingGetFiducialForTimeStamp( m_fifoInfo.fifo_time ) );
 		}
 		return evrTimeStatus;
@@ -629,11 +629,11 @@ int TSFifo::GetTimeStamp(
 	{
 		if ( m_fidFifo == TIMING_PULSEID_INVALID )
 			printf( "%s%s: %s Error FIFO, expectedDelay=%.2fms, fifoDelay=%.2fms, fidFifo 0x%lX\n",
-				mcbFormattedTime(), functionName, ( fifoReset ? "Reset" : "Next " ),
+				ts_time_str(), functionName, ( fifoReset ? "Reset" : "Next " ),
 				m_expDelay * 1000, m_fifoDelay * 1000, m_fidFifo );
 		else
 			printf( "%s%s: %s  FIFO, expectedDelay=%.2fms, fifoDelay=%.2fms\n",
-				mcbFormattedTime(), functionName, ( fifoReset ? "Reset" : "Next " ),
+				ts_time_str(), functionName, ( fifoReset ? "Reset" : "Next " ),
 				m_expDelay * 1000, m_fifoDelay * 1000 );
 	}
 
@@ -678,7 +678,7 @@ int TSFifo::GetTimeStamp(
 
 			if ( DEBUG_TS_FIFO >= 5 )
 				printf( "%s%s FIFO incr %2d: expectedDelay=%.3fms, fifoDelay=%.3fms, diffVsExp=%.3f\n",
-					mcbFormattedTime(), functionName, m_idxIncr,
+					ts_time_str(), functionName, m_idxIncr,
 					m_expDelay*1000, m_fifoDelay*1000, m_diffVsExp*1000 );
 
 			double	diffVsExpPercent = m_diffVsExp * 100.0 / m_expDelay; 
@@ -716,7 +716,7 @@ int TSFifo::GetTimeStamp(
 		char		acBuff[40];
 		epicsTimeToStrftime( acBuff, 40, "%H:%M:%S.%04f", &m_fifoTimeStamp );
 		printf( "%s%s: %-8s, %-8s, ts %s, fid 0x%llX, fidFifo 0x%lX, fid360 0x%X, fidDiff %ld, fidDiffPrior %ld\n",
-			mcbFormattedTime(), functionName,
+			ts_time_str(), functionName,
 			( m_synced ? "Synced" : "Unsynced" ),
 			SyncTypeToStr( tySync ),
 			acBuff, timingGetFiducialForTimeStamp(m_fifoTimeStamp), m_fidFifo, fid360,
