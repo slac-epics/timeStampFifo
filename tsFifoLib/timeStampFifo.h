@@ -40,7 +40,8 @@ public:
 	///   TS_TOD    - Provides a synced, pulse id'd timestamp for the specified event code
 	///				  if available.  If not, it provides the current time w/ the most recent
 	///				  fiducial pulse id.
-	enum TSPolicy	{ TS_LAST_EC = 0, TS_SYNCED = 1, TS_TOD = 2 };
+    enum TSPolicy	{ TS_LAST_EC = 0, TS_SYNCED = 1, TS_TOD = 2, TS_INTERNAL = 3 };
+    enum TSIntReq	{ TS_NONE = 0, TS_SET = 1, TS_TWEAK_FWD = 2, TS_TWEAK_REV = 3 };
 
     /// Constructor
     TSFifo(	const char			*	pPortName,
@@ -117,7 +118,14 @@ public:		//  Public input member variables
 	double					m_fifoDelayMin;	/// Minimum m_fifoDelay (sec)
 	double					m_fifoDelayMax;	/// Maximum m_fifoDelay (sec)
 
+	double					m_diffVsInt;	/// Diff vs Internal (ms)
+	double					m_diffVsIntMin;	/// Minimum Diff vs Internal (ms)
+	double					m_diffVsIntMax;	/// Maximum Diff vs Internal (ms)
+	double					m_diffVsIntAvg;	/// Smoothed Diff vs Internal (ms)
+	TSIntReq                                m_intreq;
+	bool                                    m_intreq_in;
 	struct	aSubRecord	*	m_pSubRecord;
+	double                          m_delta;        /// actual ts - internal ts delta (s)
 
 private:	//  Private member variables
 	std::string				m_portName;
@@ -133,6 +141,10 @@ private:	//  Private member variables
 	double					m_fifoDelay;
 	TimingPulseId			m_fidFifo;
 	TSPolicy				m_TSPolicy;
+	TSPolicy				m_TSPolicyPrior;
+	double                          m_last_camera_ts;
+	uint64_t			m_last_idx;
+	epicsUInt32                     m_last_ec;
 	epicsMutexId			m_TSLock;
 
 private:    //  Private class variables

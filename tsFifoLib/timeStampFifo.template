@@ -1,4 +1,4 @@
-#
+
 # timeStampFifo.template
 #
 # Required macros:
@@ -25,14 +25,23 @@
 #	B: Event Code PV name
 #	C: Generation count PV name
 #	D: PV name for expected delay in seconds from event code to acquisition
-#	E: PV name for timestamp policy: 0 = LAST_EC, 1 = SYNCED, 2 = TOD
+#	E: PV name for timestamp policy: 0 = LAST_EC, 1 = SYNCED, 2 = TOD, 3 = INTERNAL
 #	F: TimeStampFifo FreeRun mode: 0 = Triggered, 1 = FreeRun
+#       G: IntReq: NONE = 0, SET = 0, TWEAK_FWD = 0, TWEAK_REV = 0
 #
 # Outputs
 #	A:	TimeStamp Synced Status: 0 = unlocked, 1 = locked
 #	B:	DiffVsExp,    ms
 #	C:	DiffVsExpMin, ms
 #	D:	DiffVsExpMax, ms
+#	E:	ActualDelayMin, ms
+#	F:	ActualDelayMax, ms
+#       G:      IntReqNew
+#       H:      DiffVsInt     ms
+#       I:      DiffVsIntMin  ms
+#       J:      DiffVsIntMax  ms
+#       K:      DiffVsIntAvg  ms
+#       L:      Delta         s
 #
 record( aSub, "$(DEV):UpdateParams" )
 {
@@ -46,6 +55,7 @@ record( aSub, "$(DEV):UpdateParams" )
   field( FTD,  "DOUBLE" ) field( INPD, "$(TSDLY_PV=$(DEV):ExpectedDelay) CPP NMS" )
   field( FTE,  "LONG"   ) field( INPE, "$(DEV):TsPolicy CPP NMS" )
   field( FTF,  "LONG"   ) field( INPF, "$(DEV):TsFreeRun CPP NMS" )
+  field( FTG,  "LONG"   ) field( INPG, "$(DEV):IntReq NPP NMS" )
 
   field( OUTA, "$(DEV):SyncStatus PP MS" )
   field( FTVA, "LONG"   )
@@ -59,6 +69,18 @@ record( aSub, "$(DEV):UpdateParams" )
   field( FTVE, "DOUBLE"   )
   field( OUTF, "$(DEV):ActualDelayMax PP MS" )
   field( FTVF, "DOUBLE"   )
+  field( OUTG, "$(DEV):IntReqNew PP NMS" )
+  field( FTVG,  "LONG"   )
+  field( OUTH, "$(DEV):DiffVsInt PP MS" )
+  field( FTVH, "DOUBLE"   )
+  field( OUTI, "$(DEV):DiffVsIntMin PP MS" )
+  field( FTVI, "DOUBLE"   )
+  field( OUTJ, "$(DEV):DiffVsIntMax PP MS" )
+  field( FTVJ, "DOUBLE"   )
+  field( OUTK, "$(DEV):DiffVsIntAvg PP MS" )
+  field( FTVK, "DOUBLE"   )
+  field( OUTL, "$(DEV):DELTA PP MS" )
+  field( FTVL, "DOUBLE"   )
   info(  autosaveFields, "DESC" )
 }
 
@@ -183,6 +205,7 @@ record( mbbo, "$(DEV):TsPolicy" )
   field( ZRVL, "0" ) field( ZRST, "LAST_EC" )
   field( ONVL, "1" ) field( ONST, "SYNCED" )
   field( TWVL, "2" ) field( TWST, "TOD" )
+  field( THVL, "3" ) field( THST, "INTERNAL" )
   field( PINI, "YES" )
   info(  autosaveFields, "DESC VAL" )
 }
@@ -193,4 +216,72 @@ record( bo, "$(DEV):TsFreeRun" )
   field( ZNAM, "Triggered" )
   field( ONAM, "FreeRun" )
   info(  autosaveFields, "DESC ZNAM ONAM ZSV OSV" )
+}
+
+record( ao, "$(DEV):DiffVsInt" )
+{
+  field( PREC, "3" )
+  field( EGU,  "ms" )
+  info(  autosaveFields, "DESC LOLO LOW HIGH HIHI LLSV LSV HSV HHSV PREC" )
+}
+
+record( ao, "$(DEV):DiffVsIntMin" )
+{
+  field( PREC, "3" )
+  field( EGU,  "ms" )
+  info(  autosaveFields, "LOLO LOW HIGH HIHI LLSV LSV HSV HHSV PREC" )
+}
+
+record( ao, "$(DEV):DiffVsIntMax" )
+{
+  field( PREC, "3" )
+  field( EGU,  "ms" )
+  info(  autosaveFields, "LOLO LOW HIGH HIHI LLSV LSV HSV HHSV PREC" )
+}
+
+record( ao, "$(DEV):DiffVsIntAvg" )
+{
+  field( PREC, "3" )
+  field( EGU,  "ms" )
+  info(  autosaveFields, "LOLO LOW HIGH HIHI LLSV LSV HSV HHSV PREC" )
+}
+
+record( mbbo, "$(DEV):IntReq" )
+{
+  field( DESC, "Internal Timestamping Request" )
+  field( DOL,  "0" )
+  field( ZRVL, "0" ) field( ZRST, "NONE" )
+  field( ONVL, "1" ) field( ONST, "SET" )
+  field( TWVL, "2" ) field( TWST, "TWEAK_FWD" )
+  field( THVL, "3" ) field( THST, "TWEAK_REV" )
+  field( PINI, "YES" )
+  field( FLNK, "$(DEV):UpdateParams" )
+  info(  autosaveFields, "DESC VAL" )
+}
+
+record( longout, "$(DEV):IntReqNew" )
+{
+  field(FLNK, "$(DEV):IntReqUpdate")
+}
+
+record( calcout, "$(DEV):IntReqUpdate" )
+{
+  field(INPA, "$(DEV):IntReq NPP NMS")
+  field(INPB, "$(DEV):IntReqNew NPP NMS")
+  field(CALC, "A!=B")
+  field(OOPT, "When Non-zero")
+  field(DOPT, "Use OCAL")
+  field(OCAL, "B")
+  field(OUT,  "$(DEV):IntReq PP")
+}
+
+record(ao, "$(DEV):DELTA")
+{
+  field(FLNK, "$(DEV):INTERNAL_SYNC")
+}
+
+record (calc, "$(DEV):INTERNAL_SYNC")
+{
+  field(INPA, "$(DEV):DELTA NMS NPP")
+  field(CALC, "ABS(A)>0.001")
 }
