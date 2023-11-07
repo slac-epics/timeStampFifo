@@ -333,6 +333,13 @@ int TSFifo::GetTimeStamp(
 			m_delta = 0.0;
 			break; /* No TS?!? */
 		    }
+		    if ( DEBUG_TS_FIFO >= 5 )
+			printf( "%s%s: INTERNAL, timingFifoRead %d.%09d (fid=0x%x, idx=%lu)!\n",
+				ts_time_str(), functionName,
+				m_fifoInfo.fifo_time.secPastEpoch,
+				m_fifoInfo.fifo_time.nsec,
+				m_fifoInfo.fifo_time.nsec & 0x1ffff,
+				m_last_idx);
 		    m_delta = ((double)m_fifoInfo.fifo_time.secPastEpoch + 
 			       (double)m_fifoInfo.fifo_time.nsec / 1.e9) - camera_ts;
 		    if ( DEBUG_TS_FIFO >= 1 )
@@ -344,6 +351,12 @@ int TSFifo::GetTimeStamp(
 		    m_intreq_in = false;
 		    *pTimeStampRet = m_fifoInfo.fifo_time;
 		    m_last_camera_ts = camera_ts;
+		    /* Since we are resynching, clear the stats! */
+		    m_diffVsInt	= 0.0;
+		    m_diffVsIntMin	= 1.0;
+		    m_diffVsIntMax	= -1.0;
+		    m_diffVsIntAvg	= 0.0;
+		    m_delta         = 0.0;
 		    epicsMutexUnlock( m_TSLock );
 		    if ( m_pSubRecord != NULL )	{
 			dbCommon *pDbCommon = reinterpret_cast<dbCommon *>( m_pSubRecord );
@@ -380,7 +393,7 @@ int TSFifo::GetTimeStamp(
 			break; /* Fall through to LAST_EC. */
 		    new_ts = m_delta + camera_ts;
 		    if ( DEBUG_TS_FIFO >= 5 )
-			printf( "%s%s: INTERNAL, %g --> %.19g\n", 
+			printf( "%s%s: INTERNAL, %.19g --> %.19g\n", 
 				ts_time_str(), functionName, camera_ts, new_ts);
 		    /*
 		     * If the event code has changed, we need to start over at the end.
