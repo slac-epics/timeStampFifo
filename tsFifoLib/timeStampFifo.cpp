@@ -356,7 +356,6 @@ int TSFifo::GetTimeStamp(
 		    m_diffVsIntMin	= 1.0;
 		    m_diffVsIntMax	= -1.0;
 		    m_diffVsIntAvg	= 0.0;
-		    m_delta         = 0.0;
 		    epicsMutexUnlock( m_TSLock );
 		    if ( m_pSubRecord != NULL )	{
 			dbCommon *pDbCommon = reinterpret_cast<dbCommon *>( m_pSubRecord );
