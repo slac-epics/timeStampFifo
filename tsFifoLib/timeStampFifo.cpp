@@ -504,7 +504,7 @@ int TSFifo::GetTimeStamp(
 			const char *now = ts_time_str();
 			printf("%s%s: INTERNAL, last match, idx=%lu, camera_ts=%g\n",
 			       now, functionName, m_last_idx, m_last_camera_ts);
-			printf( "%s%s: INTERNAL, %g --> %.19g\n", 
+			printf( "%s%s: INTERNAL, %.19g --> %.19g\n", 
 				now, functionName, camera_ts, new_ts);
 			for (i = 0; i < logcnt; i++) {
 			    printf( "%s%s: INTERNAL, timingFifoRead %d.%09d (fid=0x%x, idx=%lu), diff=%g\n",
