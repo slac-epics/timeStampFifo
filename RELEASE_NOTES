@@ -1,6 +1,9 @@
 #
 # RELEASE_NOTES
 #
+R2.2.0 2024-11-14 Jeremy Lorelli
+    Upgrade to asyn/R4.39-1.0.2, ADCore/R3.10-1.1.1
+
 R2.1.1 2023-02-27 Bruce Hill
 	Build a version with ADCore/R3.9-1.1.0
 
