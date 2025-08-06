@@ -5,7 +5,7 @@ from caproto.threading.client import Context
 
 
 def parse_cli():
-    parser = argparse.ArgumentParser(description='Archon Interal TS mode syncing.')
+    parser = argparse.ArgumentParser(description='Interal TS mode syncing.')
 
     parser.add_argument('cam',
                         help='PV base for the camera')
@@ -21,19 +21,26 @@ def parse_cli():
                         default=10.0,
                         help='General timeout value in seconds used ca (default = 10.0s)')
 
+    parser.add_argument('--lineScanModePrefix',
+                        type=str,
+                        default=None,
+                        help='Specify prefix to control {CAM}:{PREFIX}LineScanMode')
+
     return parser.parse_args()
 
 
-def generate_pv_list(CAM, TPR=None):
+def generate_pv_list(CAM, TPR=None, lineScanModePrefix=None):
     pvlist = {
         'ts_policy': f"{CAM}:TSS:TsPolicy",
         'ts_status': f"{CAM}:TSS:SyncStatus",
         'intreq': f"{CAM}:TSS:IntReq",
         'running': f"{CAM}:DetectorState_RBV",
-        'ls_mode': f"{CAM}:ArchonLineScanMode",
-        'ls_mode_rbv': f"{CAM}:ArchonLineScanMode_RBV",
         'acquire': f"{CAM}:Acquire",
     }
+
+    if lineScanModePrefix is not None:
+        pvlist['ls_mode'] = f"{CAM}:%sLineScanMode" % lineScanModePrefix
+        pvlist['ls_mode_rbv'] = f"{CAM}:%sLineScanMode_RBV" % lineScanModePrefix
 
     if TPR is not None:
         TPR_PV, TPR_CH = TPR
@@ -112,12 +119,13 @@ class PvManager:
 def main():
     args = parse_cli()
 
-    pvlist = generate_pv_list(args.cam, args.tpr)
+    pvlist = generate_pv_list(args.cam, args.tpr, args.lineScanModePrefix)
     pvm = PvManager(pvlist, args.timeout)
 
     ts_policy = pvm.read('ts_policy')
     ts_status = pvm.read('ts_status')
-    ls_mode = pvm.read('ls_mode_rbv')
+    if args.lineScanModePrefix is not None:
+        ls_mode = pvm.read('ls_mode_rbv')
 
     """
     Check the current sync policy and status. We only try to sync if 
@@ -145,15 +153,17 @@ def main():
             # Set the trigger to event code 45
             pvm.write('evr', 'evcode', value=45)
 
-        # If the archon is running stop it before changing linescan mode to disabled
-        if pvm.read('running') != "Idle" and ls_mode == "Enable":
-            pvm.write('acquire', value="Done")
-            pvm.wait('running', value="Idle")
+        if args.lineScanModePrefix is not None:
+            ls_mode = pvm.read('ls_mode_rbv')
+            # If the camera is running stop it before changing linescan mode to disabled
+            if pvm.read('running') != "Idle" and ls_mode == "Enable":
+                pvm.write('acquire', value="Done")
+                pvm.wait('running', value="Idle")
 
-        # Set linescan mode to disabled
-        pvm.write('ls_mode', value="Disable")
+            # Set linescan mode to disabled
+            pvm.write('ls_mode', value="Disable")
 
-        # If the archon is not running then re-enable acquisition
+        # If the camera is not running then re-enable acquisition
         if pvm.read('running') != "Acquire":
             # write always hits timeout on this pv even though the write happens...
             pvm.write('acquire', value="Acquire", wait=False)
@@ -170,11 +180,16 @@ def main():
         else:
             print(f"Failed to sync {args.cam} - check that there is triggers/timing")
 
-        # Check if linescan mode needs to be restored
-        if pvm.read('ls_mode_rbv') != ls_mode:
+        if args.lineScanModePrefix is None:
+            # Disable acquisition while restoring trigger settings
             pvm.write('acquire', value="Done")
             pvm.wait('running', value="Idle")
-            pvm.write('ls_mode', value=ls_mode)
+        else:
+            # Check if linescan mode needs to be restored
+            if pvm.read('ls_mode_rbv') != ls_mode:
+                pvm.write('acquire', value="Done")
+                pvm.wait('running', value="Idle")
+                pvm.write('ls_mode', value=ls_mode)
 
         if 'tpr' in pvm:
             # Restore the values we overwrote before.
@@ -189,7 +204,7 @@ def main():
             # Restore the event code we overwrote before.
             pvm.write('evr', 'evcode', value=old_evt_code)
 
-        # If the archon is not running then re-enable acquisition
+        # If the camera is not running then re-enable acquisition
         if pvm.read('running') != "Acquire":
             # sleep a bit after restoring evrs
             time.sleep(2.5)
