@@ -21,15 +21,15 @@ def parse_cli():
                         default=10.0,
                         help='General timeout value in seconds used ca (default = 10.0s)')
 
-    parser.add_argument('--lineScanModePrefix',
+    parser.add_argument('--lineScanModePv',
                         type=str,
                         default=None,
-                        help='Specify prefix to control {CAM}:{PREFIX}LineScanMode')
+                        help='Control LineScanMode with specified PV ${CAM}:${LINESCANMODEPV}')
 
     return parser.parse_args()
 
 
-def generate_pv_list(CAM, TPR=None, lineScanModePrefix=None):
+def generate_pv_list(CAM, TPR=None, lineScanModePv=None):
     pvlist = {
         'ts_policy': f"{CAM}:TSS:TsPolicy",
         'ts_status': f"{CAM}:TSS:SyncStatus",
@@ -38,9 +38,9 @@ def generate_pv_list(CAM, TPR=None, lineScanModePrefix=None):
         'acquire': f"{CAM}:Acquire",
     }
 
-    if lineScanModePrefix is not None:
-        pvlist['ls_mode'] = f"{CAM}:%sLineScanMode" % lineScanModePrefix
-        pvlist['ls_mode_rbv'] = f"{CAM}:%sLineScanMode_RBV" % lineScanModePrefix
+    if lineScanModePv is not None:
+        pvlist['ls_mode'] = f"{CAM}:%s" % lineScanModePv
+        pvlist['ls_mode_rbv'] = f"{CAM}:%s_RBV" % lineScanModePv
 
     if TPR is not None:
         TPR_PV, TPR_CH = TPR
@@ -119,12 +119,12 @@ class PvManager:
 def main():
     args = parse_cli()
 
-    pvlist = generate_pv_list(args.cam, args.tpr, args.lineScanModePrefix)
+    pvlist = generate_pv_list(args.cam, args.tpr, args.lineScanModePv)
     pvm = PvManager(pvlist, args.timeout)
 
     ts_policy = pvm.read('ts_policy')
     ts_status = pvm.read('ts_status')
-    if args.lineScanModePrefix is not None:
+    if args.lineScanModePv is not None:
         ls_mode = pvm.read('ls_mode_rbv')
 
     """
@@ -153,7 +153,7 @@ def main():
             # Set the trigger to event code 45
             pvm.write('evr', 'evcode', value=45)
 
-        if args.lineScanModePrefix is not None:
+        if args.lineScanModePv is not None:
             ls_mode = pvm.read('ls_mode_rbv')
             # If the camera is running stop it before changing linescan mode to disabled
             if pvm.read('running') != "Idle" and ls_mode == "Enable":
@@ -180,7 +180,7 @@ def main():
         else:
             print(f"Failed to sync {args.cam} - check that there is triggers/timing")
 
-        if args.lineScanModePrefix is None:
+        if args.lineScanModePv is None:
             # Disable acquisition while restoring trigger settings
             pvm.write('acquire', value="Done")
             pvm.wait('running', value="Idle")
