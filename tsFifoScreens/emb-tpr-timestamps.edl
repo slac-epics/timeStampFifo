@@ -189,7 +189,7 @@ x 240
 y 8
 w 60
 h 20
-controlPv "$(P)$(R)TSS:EventCode_RBV"
+controlPv "$(TSS):EventCode_RBV"
 font "helvetica-medium-r-12.0"
 fontAlign "center"
 fgColor index 15
@@ -430,7 +430,7 @@ x 268
 y 66
 w 92
 h 20
-controlPv "$(P)$(R)TSS:ExpectedDelay"
+controlPv "$(TSS):ExpectedDelay"
 format "gfloat"
 font "helvetica-medium-r-12.0"
 fontAlign "center"
@@ -524,7 +524,7 @@ x 300
 y 94
 w 60
 h 20
-controlPv "$(P)$(R)TSS:DiffVsExpMax"
+controlPv "$(TSS):DiffVsExpMax"
 format "gfloat"
 font "helvetica-medium-r-12.0"
 fontAlign "center"
@@ -571,7 +571,7 @@ x 184
 y 94
 w 68
 h 20
-controlPv "$(P)$(R)TSS:DiffVsExpMin"
+controlPv "$(TSS):DiffVsExpMin"
 format "gfloat"
 font "helvetica-medium-r-12.0"
 fontAlign "center"
@@ -618,7 +618,7 @@ x 72
 y 94
 w 68
 h 20
-controlPv "$(P)$(R)TSS:DiffVsExp"
+controlPv "$(TSS):DiffVsExp"
 format "gfloat"
 font "helvetica-medium-r-12.0"
 fontAlign "center"
@@ -657,7 +657,7 @@ endObjectProperties
 
 endGroup
 
-visPv "CALC\\\{A=0&&B=1\}($(P)$(R)TSS:TsFreeRun.RVAL,$(P)$(R)TSS:TsPolicy.RVAL)"
+visPv "CALC\\\{A=0&&B=1\}($(TSS):TsFreeRun.RVAL,$(TSS):TsPolicy.RVAL)"
 visMin "1"
 visMax "2"
 endObjectProperties
@@ -685,7 +685,7 @@ x 308
 y 94
 w 52
 h 20
-controlPv "$(P)$(R)TSS:DiffVsIntAvg"
+controlPv "$(TSS):DiffVsIntAvg"
 format "gfloat"
 font "helvetica-medium-r-12.0"
 fontAlign "center"
@@ -736,7 +736,7 @@ onColor index 6
 offColor index 3
 topShadowColor index 1
 botShadowColor index 13
-controlPv "$(P)$(R)TSS:IntReq"
+controlPv "$(TSS):IntReq"
 pressValue "2"
 onLabel "Tweak +"
 offLabel "Tweak +"
@@ -755,7 +755,7 @@ x 223
 y 94
 w 52
 h 20
-controlPv "$(P)$(R)TSS:DiffVsIntMax"
+controlPv "$(TSS):DiffVsIntMax"
 format "gfloat"
 font "helvetica-medium-r-12.0"
 fontAlign "center"
@@ -786,7 +786,7 @@ onColor index 6
 offColor index 3
 topShadowColor index 1
 botShadowColor index 13
-controlPv "$(P)$(R)TSS:IntReq"
+controlPv "$(TSS):IntReq"
 pressValue "1"
 onLabel "Set"
 offLabel "Set"
@@ -825,7 +825,7 @@ x 138
 y 94
 w 52
 h 20
-controlPv "$(P)$(R)TSS:DiffVsIntMin"
+controlPv "$(TSS):DiffVsIntMin"
 format "gfloat"
 font "helvetica-medium-r-12.0"
 fontAlign "center"
@@ -856,7 +856,7 @@ onColor index 6
 offColor index 3
 topShadowColor index 1
 botShadowColor index 13
-controlPv "$(P)$(R)TSS:IntReq"
+controlPv "$(TSS):IntReq"
 pressValue "3"
 onLabel "Tweak -"
 offLabel "Tweak -"
@@ -895,7 +895,7 @@ x 56
 y 94
 w 52
 h 20
-controlPv "$(P)$(R)TSS:DiffVsInt"
+controlPv "$(TSS):DiffVsInt"
 format "gfloat"
 font "helvetica-medium-r-12.0"
 fontAlign "center"
@@ -952,7 +952,7 @@ endObjectProperties
 
 endGroup
 
-visPv "CALC\\\{A=0&&B=3\}($(P)$(R)TSS:TsFreeRun.RVAL,$(P)$(R)TSS:TsPolicy.RVAL)"
+visPv "CALC\\\{A=0&&B=3\}($(TSS):TsFreeRun.RVAL,$(TSS):TsPolicy.RVAL)"
 visMin "1"
 visMax "2"
 endObjectProperties
@@ -991,7 +991,7 @@ endObjectProperties
 
 endGroup
 
-visPv "CALC\\\{A=0&&B=3&C=1\}($(P)$(R)TSS:TsFreeRun.RVAL,$(P)$(R)TSS:TsPolicy.RVAL,$(P)$(R)TSS:INTERNAL_SYNC)"
+visPv "CALC\\\{A=0&&B=3&C=1\}($(TSS):TsFreeRun.RVAL,$(TSS):TsPolicy.RVAL,$(TSS):INTERNAL_SYNC)"
 visMin "1"
 visMax "2"
 endObjectProperties
@@ -1030,7 +1030,7 @@ endObjectProperties
 
 endGroup
 
-visPv "CALC\\\{A=0&&B=3&C=0\}($(P)$(R)TSS:TsFreeRun.RVAL,$(P)$(R)TSS:TsPolicy.RVAL,$(P)$(R)TSS:INTERNAL_SYNC)"
+visPv "CALC\\\{A=0&&B=3&C=0\}($(TSS):TsFreeRun.RVAL,$(TSS):TsPolicy.RVAL,$(TSS):INTERNAL_SYNC)"
 visMin "1"
 visMax "2"
 endObjectProperties
@@ -1045,7 +1045,7 @@ x 268
 y 38
 w 92
 h 20
-controlPv "$(P)$(R)TSS:SyncStatus"
+controlPv "$(TSS):SyncStatus"
 format "gfloat"
 font "helvetica-medium-r-12.0"
 fontAlign "center"
@@ -1076,8 +1076,8 @@ bgColor index 5
 inconsistentColor index 40
 topShadowColor index 2
 botShadowColor index 13
-controlPv "$(P)$(R)TSS:TsPolicy"
-indicatorPv "$(P)$(R)TSS:TsPolicy"
+controlPv "$(TSS):TsPolicy"
+indicatorPv "$(TSS):TsPolicy"
 font "helvetica-medium-r-14.0"
 endObjectProperties
 
@@ -1138,7 +1138,7 @@ endObjectProperties
 
 endGroup
 
-visPv "CALC\\\{A=0&&B=3\}($(P)$(R)TSS:TsFreeRun.RVAL,$(P)$(R)TSS:TsPolicy.RVAL)"
+visPv "CALC\\\{A=0&&B=3\}($(TSS):TsFreeRun.RVAL,$(TSS):TsPolicy.RVAL)"
 visMin "1"
 visMax "2"
 endObjectProperties
