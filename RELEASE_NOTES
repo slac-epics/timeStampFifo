@@ -1,8 +1,35 @@
 #
 # RELEASE_NOTES
 #
+R2.4.0 2025-08-21 Bruce Hill
+	Change macro to TSS in embedded timestamps screens
+	Moved embedded timestamp screens here
+	Add --lineScanModePv option to syncts.py
+	Copied ioc/common/archonCam scripts/archonsyncts.py here and renamed syncts.py
+
+R2.3.1 Thu May 1 2025 Bruce Hill
+	Update to ADCore/R3.10-1.2.0
+
+R2.3.0 Apr 21 2025 Bruce Hill
+	Update to ADCore/R3.10-1.1.2 and asyn/R4.42-1.0.0
+
+R2.2.2 Apr 11 2025 Bruce Hill
+	Update to timingApi/R0.10
+
+R2.2.1 Apr 11 2025 Bruce Hill
+	Update to ADCore/R3.10-1.1.2 and asyn/R4.42-1.0.0
+
 R2.2.0 2024-11-14 Jeremy Lorelli
     Upgrade to asyn/R4.39-1.0.2, ADCore/R3.10-1.1.1
+
+R2.1.6 Sep 24 2024 Daniel Damiani
+	bump adcore and aysn version
+
+R2.1.5 Nov 13 2023 Michael Browne
+	Misc improvements
+
+R2.1.4 Aug 28 2023 Michael Browne
+	Add new INTERNAL timestamping mode.
 
 R2.1.1 2023-02-27 Bruce Hill
 	Build a version with ADCore/R3.9-1.1.0
@@ -103,7 +130,7 @@ R1.5.3  2017-05-03 Hugo Slepicka
 
 R1.5.2	2017-04-22 Bruce Hill
 	Updated build support for git workflow
-	Updated modules to 
+	Updated modules to
 		ADCore/R2.6-0.3.0
 		asyn/R4.31-0.1.0
 		diagTimer/R1.9.0
@@ -112,11 +139,11 @@ R1.5.2	2017-04-22 Bruce Hill
 R1.5.1	2016-07-01 Bruce Hill
 	Updated to event2/R4.0.0-4.2.3
 
-R1.5.0	2016-05-09 Bruce Hill 
+R1.5.0	2016-05-09 Bruce Hill
 	Added diffVsExp output, along w/ diffVsExpMin and diffVsExpMax.
 	Added auto selection of TOD locking when in FreeRun mode.
 	Updated to event2 R4.0.0-4.2.0
 
-R1.4.0	2016-04-20 Bruce Hill 
+R1.4.0	2016-04-20 Bruce Hill
 	Bumped up to event2 R4.0.0-4.1.0 and fixed some issues w/ the TOD timeStamp policy.
 
