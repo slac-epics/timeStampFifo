@@ -1,6 +1,9 @@
 #
 # RELEASE_NOTES
 #
+R2.4.1 2025-08-28 Bruce Hill
+	Update to timingApi/R0.11
+
 R2.4.0 2025-08-21 Bruce Hill
 	Change macro to TSS in embedded timestamps screens
 	Moved embedded timestamp screens here
