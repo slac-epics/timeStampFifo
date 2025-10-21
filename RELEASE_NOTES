@@ -1,6 +1,10 @@
 #
 # RELEASE_NOTES
 #
+R2.5.0 2025-10-21 Bruce Hill
+	Add diagnostics to flag INTERNAL mode not supported by camera module.
+	Update to diagTimer/R1.9.4
+
 R2.4.1 2025-08-28 Bruce Hill
 	Update to timingApi/R0.11
 
