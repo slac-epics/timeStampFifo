@@ -1072,6 +1072,7 @@ y 38
 w 100
 h 20
 fgColor index 25
+fgAlarm
 bgColor index 5
 inconsistentColor index 40
 topShadowColor index 2
