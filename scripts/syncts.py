@@ -178,7 +178,7 @@ def main():
         if ts_status == "Locked":
             print(f"Successfully synced {args.cam}")
         else:
-            print(f"Failed to sync {args.cam} - check that there is triggers/timing")
+            print(f"Failed to sync {args.cam} - check triggers/timing and/or IOC log file.")
 
         if args.lineScanModePv is None:
             # Disable acquisition while restoring trigger settings

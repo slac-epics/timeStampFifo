@@ -20,6 +20,7 @@
 #include "asynDriver.h"
 #include "timingFifoApi.h"
 #include "timeStampFifo.h"
+#include "ContextTimer.h"
 #include "HiResTime.h"
 
 extern double camera_ts;
@@ -108,6 +109,7 @@ static void TimeStampFifo(
 	const char		*	functionName	= "TimeStampFifo";
 	if ( pTimeStamp == NULL )
 		return;
+	CONTEXT_TIMER( functionName );
 
 	int			status	= -1;
 	TSFifo	*	pTSFifo	= reinterpret_cast<TSFifo *>( userPvt );
@@ -276,6 +278,7 @@ int TSFifo::GetTimeStamp(
 
 	if ( pTimeStampRet == NULL )
 		return -1;
+	CONTEXT_TIMER( functionName );
 
 	// Update the 64bit timestamp counter
 	m_tscNow	= GetHiResTicks();
@@ -304,8 +307,11 @@ int TSFifo::GetTimeStamp(
 		if ( DEBUG_TS_FIFO >= 1 )
 		    printf( "%s%s: INTERNAL, initializing!\n", ts_time_str(), functionName);
 		/* For now, fall through and default to LAST_EC. */
-	    } else if (camera_ts == -1.0 || 
-		       camera_ts < m_last_camera_ts ||
+	    } else if (camera_ts == -1.0 ) {
+		if ( DEBUG_TS_FIFO >= 1 )
+		    printf( "%s%s: INTERNAL mode not supported unless camera_ts global variable is updated in your camera module!\n",
+			    ts_time_str(), functionName );
+		} else if ( camera_ts < m_last_camera_ts ||
 		       (m_synced && camera_ts > m_last_camera_ts + 120.)) {
 		/* If the camera timestamps fail, go unsynched. */
 		if ( DEBUG_TS_FIFO >= 1 )
