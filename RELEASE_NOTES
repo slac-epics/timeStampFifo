@@ -1,6 +1,10 @@
 #
 # RELEASE_NOTES
 #
+R2.5.1 2025-12-11 Jeremy Lorelli
+	Move USR_CXXFLAGS and CHECK_RELEASE to CONFIG_SITE
+	Added missing CONFIG_SITE.local include to CONFIG_SITE
+
 R2.5.0 2025-10-21 Bruce Hill
 	Add diagnostics to flag INTERNAL mode not supported by camera module.
 	Update to diagTimer/R1.9.4
