@@ -285,3 +285,19 @@ record (calc, "$(DEV):INTERNAL_SYNC")
   field(INPA, "$(DEV):DELTA NMS NPP")
   field(CALC, "ABS(A)>0.001")
 }
+
+# This record only used for TPR timing screen
+record( bo, "$(DEV):UseTPR_TS" )
+{
+  field( DESC, "Enable 2nd TPR ch for timestamp" )
+  field( ZNAM, "Disabled" )
+  field( ONAM, "Enabled" )
+}
+
+# This record only used for EVR timing screen
+record( bo, "$(DEV):UseTsEventCode" )
+{
+  field( DESC, "Enable 2nd EVR event code for timestamp" )
+  field( ZNAM, "Disabled" )
+  field( ONAM, "Enabled" )
+}
