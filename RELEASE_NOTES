@@ -1,6 +1,11 @@
 #
 # RELEASE_NOTES
 #
+R2.6.0 2026-03-31 Bruce Hill
+	Add bo records to enable use of 2nd TPR ch or eventCode for timestamping
+	Add edm support for 2nd TPR ch for timestamping
+	Enable fgAlarm on TsPolicy widget to flag invalid INTERNAL timeStampMode
+
 R2.5.1 2025-12-11 Jeremy Lorelli
 	Move USR_CXXFLAGS and CHECK_RELEASE to CONFIG_SITE
 	Added missing CONFIG_SITE.local include to CONFIG_SITE
