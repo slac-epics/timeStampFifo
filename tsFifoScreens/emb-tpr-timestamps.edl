@@ -3,10 +3,10 @@ beginScreenProperties
 major 4
 minor 0
 release 1
-x 2171
-y 1435
-w 382
-h 261
+x 537
+y 1443
+w 398
+h 314
 font "helvetica-medium-r-12.0"
 ctlFont "helvetica-medium-r-12.0"
 btnFont "helvetica-medium-r-12.0"
@@ -31,7 +31,7 @@ beginObjectProperties
 major 4
 minor 0
 release 0
-x 68
+x 88
 y 8
 w 80
 h 24
@@ -44,7 +44,7 @@ beginObjectProperties
 major 4
 minor 7
 release 0
-x 68
+x 88
 y 8
 w 80
 h 24
@@ -76,7 +76,7 @@ beginObjectProperties
 major 4
 minor 0
 release 0
-x 68
+x 88
 y 8
 w 80
 h 24
@@ -89,7 +89,7 @@ beginObjectProperties
 major 4
 minor 7
 release 0
-x 68
+x 88
 y 8
 w 80
 h 24
@@ -121,7 +121,7 @@ beginObjectProperties
 major 4
 minor 0
 release 0
-x 68
+x 88
 y 8
 w 163
 h 24
@@ -134,7 +134,7 @@ beginObjectProperties
 major 4
 minor 7
 release 0
-x 152
+x 172
 y 8
 w 80
 h 24
@@ -159,7 +159,7 @@ beginObjectProperties
 major 4
 minor 0
 release 0
-x 68
+x 88
 y 8
 w 80
 h 24
@@ -185,7 +185,7 @@ beginObjectProperties
 major 4
 minor 7
 release 0
-x 240
+x 260
 y 8
 w 60
 h 20
@@ -211,7 +211,7 @@ beginObjectProperties
 major 4
 minor 7
 release 0
-x 304
+x 324
 y 8
 w 68
 h 20
@@ -237,7 +237,7 @@ beginObjectProperties
 major 4
 minor 0
 release 0
-x 4
+x 24
 y 8
 w 192
 h 24
@@ -250,7 +250,7 @@ beginObjectProperties
 major 4
 minor 7
 release 0
-x 132
+x 152
 y 8
 w 64
 h 24
@@ -279,7 +279,7 @@ beginObjectProperties
 major 4
 minor 1
 release 1
-x 4
+x 24
 y 8
 w 120
 h 24
@@ -306,7 +306,7 @@ beginObjectProperties
 major 4
 minor 0
 release 0
-x 68
+x 88
 y 8
 w 80
 h 24
@@ -319,7 +319,7 @@ beginObjectProperties
 major 4
 minor 0
 release 0
-x 68
+x 88
 y 8
 w 80
 h 24
@@ -345,7 +345,7 @@ beginObjectProperties
 major 4
 minor 0
 release 0
-x 4
+x 24
 y 8
 w 60
 h 24
@@ -367,9 +367,9 @@ beginObjectProperties
 major 4
 minor 1
 release 1
-x 208
+x 248
 y 124
-w 76
+w 72
 h 20
 font "helvetica-medium-r-12.0"
 fontAlign "right"
@@ -387,7 +387,7 @@ beginObjectProperties
 major 4
 minor 7
 release 0
-x 292
+x 324
 y 124
 w 68
 h 20
@@ -413,8 +413,8 @@ beginObjectProperties
 major 4
 minor 0
 release 0
-x 4
-y 66
+x 24
+y 68
 w 336
 h 48
 
@@ -426,7 +426,7 @@ beginObjectProperties
 major 4
 minor 7
 release 0
-x 268
+x 288
 y 66
 w 92
 h 20
@@ -453,7 +453,7 @@ beginObjectProperties
 major 4
 minor 1
 release 1
-x 4
+x 24
 y 66
 w 64
 h 20
@@ -473,7 +473,7 @@ beginObjectProperties
 major 4
 minor 7
 release 0
-x 72
+x 92
 y 66
 w 84
 h 20
@@ -500,7 +500,7 @@ beginObjectProperties
 major 4
 minor 1
 release 1
-x 164
+x 184
 y 66
 w 96
 h 20
@@ -520,7 +520,7 @@ beginObjectProperties
 major 4
 minor 7
 release 0
-x 300
+x 320
 y 94
 w 60
 h 20
@@ -547,7 +547,7 @@ beginObjectProperties
 major 4
 minor 1
 release 1
-x 268
+x 288
 y 94
 w 28
 h 20
@@ -567,7 +567,7 @@ beginObjectProperties
 major 4
 minor 7
 release 0
-x 184
+x 204
 y 94
 w 68
 h 20
@@ -594,7 +594,7 @@ beginObjectProperties
 major 4
 minor 1
 release 1
-x 148
+x 168
 y 94
 w 24
 h 20
@@ -614,7 +614,7 @@ beginObjectProperties
 major 4
 minor 7
 release 0
-x 72
+x 92
 y 94
 w 68
 h 20
@@ -641,7 +641,7 @@ beginObjectProperties
 major 4
 minor 1
 release 1
-x 4
+x 24
 y 94
 w 60
 h 20
@@ -668,9 +668,9 @@ beginObjectProperties
 major 4
 minor 0
 release 0
-x 4
-y 66
-w 356
+x 24
+y 68
+w 368
 h 48
 
 beginGroup
@@ -681,9 +681,9 @@ beginObjectProperties
 major 4
 minor 7
 release 0
-x 308
+x 338
 y 94
-w 52
+w 54
 h 20
 controlPv "$(TSS):DiffVsIntAvg"
 format "gfloat"
@@ -707,9 +707,9 @@ beginObjectProperties
 major 4
 minor 1
 release 1
-x 282
+x 311
 y 94
-w 22
+w 23
 h 20
 font "helvetica-medium-r-12.0"
 fontAlign "right"
@@ -727,9 +727,9 @@ beginObjectProperties
 major 4
 minor 1
 release 0
-x 300
+x 330
 y 66
-w 60
+w 62
 h 20
 fgColor index 25
 onColor index 6
@@ -751,9 +751,9 @@ beginObjectProperties
 major 4
 minor 7
 release 0
-x 223
+x 250
 y 94
-w 52
+w 54
 h 20
 controlPv "$(TSS):DiffVsIntMax"
 format "gfloat"
@@ -777,9 +777,9 @@ beginObjectProperties
 major 4
 minor 1
 release 0
-x 224
+x 251
 y 66
-w 60
+w 62
 h 20
 fgColor index 25
 onColor index 6
@@ -801,9 +801,9 @@ beginObjectProperties
 major 4
 minor 1
 release 1
-x 196
+x 222
 y 94
-w 24
+w 25
 h 20
 font "helvetica-medium-r-12.0"
 fontAlign "right"
@@ -821,9 +821,9 @@ beginObjectProperties
 major 4
 minor 7
 release 0
-x 138
+x 163
 y 94
-w 52
+w 54
 h 20
 controlPv "$(TSS):DiffVsIntMin"
 format "gfloat"
@@ -847,9 +847,9 @@ beginObjectProperties
 major 4
 minor 1
 release 0
-x 144
+x 169
 y 66
-w 60
+w 62
 h 20
 fgColor index 25
 onColor index 6
@@ -871,9 +871,9 @@ beginObjectProperties
 major 4
 minor 1
 release 1
-x 114
+x 138
 y 94
-w 22
+w 23
 h 20
 font "helvetica-medium-r-12.0"
 fontAlign "right"
@@ -891,9 +891,9 @@ beginObjectProperties
 major 4
 minor 7
 release 0
-x 56
+x 78
 y 94
-w 52
+w 54
 h 20
 controlPv "$(TSS):DiffVsInt"
 format "gfloat"
@@ -917,9 +917,9 @@ beginObjectProperties
 major 4
 minor 1
 release 1
-x 4
+x 24
 y 66
-w 40
+w 41
 h 20
 font "helvetica-medium-r-12.0"
 fgColor index 14
@@ -936,9 +936,9 @@ beginObjectProperties
 major 4
 minor 1
 release 1
-x 4
+x 24
 y 94
-w 48
+w 50
 h 20
 font "helvetica-medium-r-12.0"
 fontAlign "right"
@@ -963,8 +963,8 @@ beginObjectProperties
 major 4
 minor 0
 release 0
-x 54
-y 66
+x 76
+y 68
 w 64
 h 20
 
@@ -976,7 +976,7 @@ beginObjectProperties
 major 4
 minor 1
 release 1
-x 54
+x 74
 y 66
 w 64
 h 20
@@ -1002,8 +1002,8 @@ beginObjectProperties
 major 4
 minor 0
 release 0
-x 54
-y 66
+x 76
+y 68
 w 80
 h 20
 
@@ -1015,7 +1015,7 @@ beginObjectProperties
 major 4
 minor 1
 release 1
-x 54
+x 74
 y 66
 w 80
 h 20
@@ -1041,8 +1041,8 @@ beginObjectProperties
 major 4
 minor 7
 release 0
-x 268
-y 38
+x 300
+y 40
 w 92
 h 20
 controlPv "$(TSS):SyncStatus"
@@ -1067,12 +1067,11 @@ beginObjectProperties
 major 4
 minor 0
 release 0
-x 160
-y 38
+x 180
+y 40
 w 100
 h 20
 fgColor index 25
-fgAlarm
 bgColor index 5
 inconsistentColor index 40
 topShadowColor index 2
@@ -1088,8 +1087,8 @@ beginObjectProperties
 major 4
 minor 1
 release 1
-x 4
-y 38
+x 24
+y 40
 w 120
 h 20
 font "helvetica-medium-r-12.0"
@@ -1108,8 +1107,8 @@ beginObjectProperties
 major 4
 minor 0
 release 0
-x 145
-y 126
+x 184
+y 124
 w 60
 h 20
 
@@ -1121,8 +1120,8 @@ beginObjectProperties
 major 4
 minor 3
 release 0
-x 145
-y 126
+x 185
+y 124
 w 60
 h 20
 fgColor index 25
@@ -1140,6 +1139,444 @@ endObjectProperties
 endGroup
 
 visPv "CALC\\\{A=0&&B=3\}($(TSS):TsFreeRun.RVAL,$(TSS):TsPolicy.RVAL)"
+visMin "1"
+visMax "2"
+endObjectProperties
+
+# (Static Text)
+object activeXTextClass
+beginObjectProperties
+major 4
+minor 1
+release 1
+x 0
+y 124
+w 84
+h 20
+font "helvetica-medium-r-12.0"
+fontAlign "right"
+fgColor index 14
+bgColor index 0
+useDisplayBg
+value {
+  "Timestamp Ch"
+}
+endObjectProperties
+
+# (Static Text)
+object activeXTextClass
+beginObjectProperties
+major 4
+minor 1
+release 1
+x 0
+y 8
+w 24
+h 24
+font "helvetica-bold-r-14.0"
+fgColor index 14
+bgColor index 12
+useDisplayBg
+value {
+  "$(TPR_TR)"
+}
+endObjectProperties
+
+# (Button)
+object activeButtonClass
+beginObjectProperties
+major 4
+minor 1
+release 0
+x 92
+y 124
+w 80
+h 20
+fgColor index 25
+onColor index 10
+offColor index 5
+inconsistentColor index 40
+topShadowColor index 1
+botShadowColor index 11
+controlPv "$(TSS):UseTPR_TS"
+onLabel "Use TPR_TS"
+offLabel "Use TPR_TR"
+3d
+font "helvetica-medium-r-12.0"
+objType "controls"
+endObjectProperties
+
+# (Group)
+object activeGroupClass
+beginObjectProperties
+major 4
+minor 0
+release 0
+x 92
+y 152
+w 80
+h 24
+
+beginGroup
+
+# (Text Control)
+object activeXTextDspClass
+beginObjectProperties
+major 4
+minor 7
+release 0
+x 92
+y 152
+w 80
+h 24
+controlPv "$(TPR_PV):CH$(TPR_TS)_SEQCODE"
+format "decimal"
+font "helvetica-medium-r-12.0"
+fgColor index 25
+bgColor index 5
+editable
+motifWidget
+limitsFromDb
+precision 0
+nullColor index 0
+updatePvOnDrop
+newPos
+objType "controls"
+endObjectProperties
+
+endGroup
+
+visPv "CALC\\\{(A=1)&&(B=1)&&(C=2)&&(D=1)\}($(TPR_PV):MODE,$(TPR_PV):XPM_MODE,$(TPR_PV):CH$(TPR_TS)_RATEMODE),$(TSS):UseTPR_TS"
+visMin "1"
+visMax "2"
+endObjectProperties
+
+# (Group)
+object activeGroupClass
+beginObjectProperties
+major 4
+minor 0
+release 0
+x 92
+y 152
+w 80
+h 24
+
+beginGroup
+
+# (Text Control)
+object activeXTextDspClass
+beginObjectProperties
+major 4
+minor 7
+release 0
+x 92
+y 152
+w 80
+h 24
+controlPv "$(TPR_PV):CH$(TPR_TS)_PARTITION"
+format "decimal"
+font "helvetica-medium-r-12.0"
+fgColor index 25
+bgColor index 5
+editable
+motifWidget
+limitsFromDb
+precision 0
+nullColor index 0
+updatePvOnDrop
+newPos
+objType "controls"
+endObjectProperties
+
+endGroup
+
+visPv "CALC\\\{(A=1)&&(B=1)&&(C=3)&&(D=1)\}($(TPR_PV):MODE,$(TPR_PV):XPM_MODE,$(TPR_PV):CH$(TPR_TS)_RATEMODE),$(TSS):UseTPR_TS"
+visMin "1"
+visMax "2"
+endObjectProperties
+
+# (Group)
+object activeGroupClass
+beginObjectProperties
+major 4
+minor 0
+release 0
+x 92
+y 152
+w 163
+h 24
+
+beginGroup
+
+# (Text Control)
+object activeXTextDspClass
+beginObjectProperties
+major 4
+minor 7
+release 0
+x 176
+y 152
+w 80
+h 24
+controlPv "$(TPR_PV):CH$(TPR_TS)_TSMASK"
+format "hex"
+font "helvetica-medium-r-12.0"
+fgColor index 25
+bgColor index 5
+editable
+motifWidget
+limitsFromDb
+precision 0
+nullColor index 0
+updatePvOnDrop
+newPos
+objType "controls"
+endObjectProperties
+
+# (Menu Button)
+object activeMenuButtonClass
+beginObjectProperties
+major 4
+minor 0
+release 0
+x 92
+y 152
+w 80
+h 24
+fgColor index 25
+bgColor index 5
+inconsistentColor index 14
+topShadowColor index 2
+botShadowColor index 13
+controlPv "$(TPR_PV):CH$(TPR_TS)_ACRATE"
+font "helvetica-medium-r-12.0"
+endObjectProperties
+
+endGroup
+
+visPv "CALC\\\{(A=1)&&(B=1)&&(C=1)&&(D=1)\}($(TPR_PV):MODE,$(TPR_PV):XPM_MODE,$(TPR_PV):CH$(TPR_TS)_RATEMODE),$(TSS):UseTPR_TS"
+visMin "1"
+visMax "2"
+endObjectProperties
+
+# (Group)
+object activeGroupClass
+beginObjectProperties
+major 4
+minor 0
+release 0
+x 28
+y 152
+w 192
+h 24
+
+beginGroup
+
+# (Text Control)
+object activeXTextDspClass
+beginObjectProperties
+major 4
+minor 7
+release 0
+x 156
+y 152
+w 64
+h 24
+controlPv "$(TPR_PV):CH$(TPR_TS)_EVCODE"
+format "decimal"
+font "helvetica-medium-r-12.0"
+fontAlign "center"
+fgColor index 25
+fgAlarm
+bgColor index 5
+editable
+motifWidget
+limitsFromDb
+nullColor index 40
+smartRefresh
+fastUpdate
+useHexPrefix
+newPos
+objType "controls"
+noExecuteClipMask
+endObjectProperties
+
+# (Static Text)
+object activeXTextClass
+beginObjectProperties
+major 4
+minor 1
+release 1
+x 28
+y 152
+w 120
+h 24
+font "helvetica-medium-r-12.0"
+fontAlign "right"
+fgColor index 14
+bgColor index 0
+useDisplayBg
+value {
+  "Timestamp EvCode"
+}
+endObjectProperties
+
+endGroup
+
+visPv "CALC\\\{A=0||B=0\}($(TPR_PV):MODE,$(TPR_PV):XPM_MODE)"
+visMin "1"
+visMax "2"
+endObjectProperties
+
+# (Group)
+object activeGroupClass
+beginObjectProperties
+major 4
+minor 0
+release 0
+x 92
+y 152
+w 80
+h 24
+
+beginGroup
+
+# (Menu Button)
+object activeMenuButtonClass
+beginObjectProperties
+major 4
+minor 0
+release 0
+x 92
+y 152
+w 80
+h 24
+fgColor index 25
+bgColor index 5
+inconsistentColor index 14
+topShadowColor index 2
+botShadowColor index 13
+controlPv "$(TPR_PV):CH$(TPR_TS)_FIXEDRATE"
+font "helvetica-medium-r-12.0"
+endObjectProperties
+
+endGroup
+
+visPv "CALC\\\{(A=1)&&(B=1)&&(C=0)&&(D=1)\}($(TPR_PV):MODE,$(TPR_PV):XPM_MODE,$(TPR_PV):CH$(TPR_TS)_RATEMODE),$(TSS):UseTPR_TS"
+visMin "1"
+visMax "2"
+endObjectProperties
+
+# (Group)
+object activeGroupClass
+beginObjectProperties
+major 4
+minor 0
+release 0
+x 0
+y 152
+w 392
+h 24
+
+beginGroup
+
+# (Text Monitor)
+object activeXTextDspClass:noedit
+beginObjectProperties
+major 4
+minor 7
+release 0
+x 324
+y 152
+w 68
+h 20
+controlPv "$(TPR_PV):CH$(TPR_TS)_RATE"
+font "helvetica-medium-r-12.0"
+fontAlign "center"
+fgColor index 15
+fgAlarm
+bgColor index 12
+limitsFromDb
+nullColor index 40
+smartRefresh
+useHexPrefix
+showUnits
+newPos
+objType "monitors"
+noExecuteClipMask
+endObjectProperties
+
+# (Text Monitor)
+object activeXTextDspClass:noedit
+beginObjectProperties
+major 4
+minor 7
+release 0
+x 260
+y 152
+w 60
+h 20
+controlPv "$(TSS):EventCode_RBV"
+font "helvetica-medium-r-12.0"
+fontAlign "center"
+fgColor index 15
+fgAlarm
+bgColor index 12
+limitsFromDb
+nullColor index 40
+smartRefresh
+useHexPrefix
+showUnits
+newPos
+objType "monitors"
+noExecuteClipMask
+endObjectProperties
+
+# (Static Text)
+object activeXTextClass
+beginObjectProperties
+major 4
+minor 1
+release 1
+x 0
+y 152
+w 24
+h 24
+font "helvetica-bold-r-14.0"
+fgColor index 14
+bgColor index 12
+useDisplayBg
+value {
+  "$(TPR_TS)"
+}
+endObjectProperties
+
+# (Menu Button)
+object activeMenuButtonClass
+beginObjectProperties
+major 4
+minor 0
+release 0
+x 24
+y 152
+w 60
+h 24
+fgColor index 25
+bgColor index 5
+inconsistentColor index 14
+topShadowColor index 2
+botShadowColor index 13
+controlPv "$(TPR_PV):CH$(TPR_TS)_RATEMODE"
+font "helvetica-medium-r-12.0"
+visPv "CALC\\\{(A=1)&&(B=1)\}($(TPR_PV):MODE,$(TPR_PV):XPM_MODE)"
+visMin "1"
+visMax "2"
+endObjectProperties
+
+endGroup
+
+visPv "$(TSS):UseTPR_TS"
 visMin "1"
 visMax "2"
 endObjectProperties
