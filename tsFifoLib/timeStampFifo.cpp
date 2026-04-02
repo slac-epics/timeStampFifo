@@ -565,6 +565,7 @@ int TSFifo::GetTimeStamp(
 		epicsTimeStamp		todTimeStamp;
 		evrTimeStatus	= epicsTimeGetCurrent( &todTimeStamp ); 
 		*pTimeStampRet	= todTimeStamp;
+		epicsMutexUnlock( m_TSLock );
 
 		if ( DEBUG_TS_FIFO >= 5 )
 		{
